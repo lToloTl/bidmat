@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MaterialBID 🧱</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --cream:#f5f0e8;--cream2:#ede8dc;--cream3:#e4ddd0;
+  --orange:#f4633a;--orange2:#f47c3a;
+  --dark:#2d2a26;--dark2:#4a4540;
+  --bw:3px;--sh:3px 3px 0 #2d2a26;--sh2:2px 2px 0 #2d2a26;--r:6px;
+  --pp-pink:#f47fba;--pp-cyan:#5fcfea;--pp-yellow:#f5d84a;--pp-tan:#c4956a;
+  --pp-magenta:#e05aaa;--pp-green:#6aca6a;--pp-grey:#c8c8c8;
+  --pp-blue:#5a9cf5;--pp-purple:#a07aea;--pp-red:#f4633a;--pp-lime:#a0d84a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Nunito',sans-serif;background:var(--cream);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#d8d1c4 1px,transparent 1px);
+  background-size:28px 28px;opacity:.4;pointer-events:none;z-index:0;}
+.char{width:28px;height:28px;border:var(--bw) solid var(--dark);border-radius:4px;
+  position:relative;animation:charBob .55s ease infinite alternate;flex-shrink:0;display:inline-block;vertical-align:middle;}
+.char::before{content:'';position:absolute;top:7px;left:4px;width:5px;height:5px;
+  background:var(--dark);border-radius:0;box-shadow:11px 0 0 var(--dark);}
+.char::after{content:'';position:absolute;bottom:-5px;left:5px;width:5px;height:5px;
+  background:var(--dark);border-radius:0;box-shadow:9px 0 0 var(--dark);}
+.char-row{display:flex;gap:6px;justify-content:center;margin:10px 0;}
+@keyframes charBob{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+.ground{position:fixed;bottom:0;left:0;width:100%;height:32px;background:#8bc46a;
+  border-top:var(--bw) solid var(--dark);z-index:0;
+  background-image:repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(0,0,0,.07) 28px,rgba(0,0,0,.07) 30px);}
+.ground::before{content:'';position:absolute;top:-11px;left:0;width:100%;height:13px;
+  background:repeating-linear-gradient(90deg,#8bc46a 0,#8bc46a 26px,transparent 26px,transparent 30px);
+  border-top:var(--bw) solid var(--dark);}
+.app{position:relative;z-index:1;padding-bottom:56px;}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 28px;
+  background:var(--orange);border-bottom:var(--bw) solid var(--dark);box-shadow:0 3px 0 var(--dark);
+  position:sticky;top:0;z-index:100;}
+.logo{font-family:'Press Start 2P',monospace;font-size:13px;color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.2);}
+.logo-bar{height:3px;background:rgba(255,255,255,.7);margin-top:4px;border-radius:2px;}
+.hdr{display:flex;align-items:center;gap:8px;}
+.live-pill{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--pp-green);color:#fff;
+  border:var(--bw) solid var(--dark);padding:5px 8px;border-radius:4px;box-shadow:var(--sh2);
+  display:flex;align-items:center;gap:5px;}
+.ldot{width:6px;height:6px;background:#fff;border-radius:0;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.adm-btn{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--cream);color:var(--dark);
+  border:var(--bw) solid var(--dark);padding:7px 10px;border-radius:4px;cursor:pointer;
+  box-shadow:var(--sh2);transition:transform .1s,box-shadow .1s;}
+.adm-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--dark);}
+.sync-bar{background:var(--cream2);border-bottom:2px solid var(--dark);padding:4px 28px;
+  display:flex;align-items:center;gap:8px;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dark2);}
+.sdot{width:6px;height:6px;border-radius:0;background:var(--pp-grey);flex-shrink:0;transition:background .3s;}
+.sdot.ok{background:var(--pp-green);}.sdot.err{background:var(--pp-red);}
+.sdot.busy{background:var(--pp-yellow);animation:blink .4s infinite;}
+.page{display:none;}.page.active{display:block;}
+.fg{margin-bottom:15px;}
+.fg label{display:block;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dark);margin-bottom:6px;}
+.fg select,.fg input,.fg textarea{width:100%;background:var(--cream);border:var(--bw) solid var(--dark);color:var(--dark);
+  padding:10px 12px;border-radius:4px;font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;
+  outline:none;box-shadow:var(--sh2);transition:box-shadow .15s;-webkit-appearance:none;resize:vertical;}
+.fg select:focus,.fg input:focus,.fg textarea:focus{box-shadow:2px 2px 0 var(--dark),0 0 0 3px rgba(244,99,58,.2);}
+.btn-go{width:100%;padding:13px;background:var(--orange);color:#fff;border:var(--bw) solid var(--dark);
+  border-radius:4px;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;
+  box-shadow:var(--sh);transition:transform .1s,box-shadow .1s;letter-spacing:1px;}
+.btn-go:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--dark);}
+.btn-go:active:not(:disabled){transform:translate(1px,1px);box-shadow:2px 2px 0 var(--dark);}
+.btn-go:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:var(--sh2);}
+.card{width:100%;background:var(--cream2);border:var(--bw) solid var(--dark);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;}
+.card-h{padding:10px 16px;background:var(--orange2);border-bottom:var(--bw) solid var(--dark);
+  font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;}
+.card-b{padding:18px;}
+
+/* SETUP PAGE */
+.setup-wrap{max-width:600px;margin:0 auto;padding:28px 18px;display:flex;flex-direction:column;align-items:center;gap:20px;}
+.game-title{font-family:'Press Start 2P',monospace;font-size:clamp(16px,3.5vw,28px);
+  color:var(--orange);text-shadow:3px 3px 0 rgba(0,0,0,.12);text-align:center;line-height:1.4;}
+.game-title-bar{width:80%;height:4px;background:var(--orange2);border-radius:2px;margin:8px auto 0;}
+.divider{display:flex;align-items:center;gap:10px;width:100%;
+  font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dark2);}
+.divider::before,.divider::after{content:'';flex:1;height:2px;background:var(--cream3);}
+
+/* token input */
+.token-note{background:var(--dark);color:var(--pp-cyan);border:var(--bw) solid var(--dark);
+  border-radius:var(--r);padding:14px 16px;font-size:11px;font-weight:800;line-height:1.8;box-shadow:var(--sh);}
+.token-note a{color:var(--pp-yellow);}
+.token-note code{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--pp-green);
+  background:rgba(255,255,255,.08);padding:2px 5px;border-radius:3px;}
+
+/* REGISTER */
+.reg-wrap{max-width:660px;margin:0 auto;padding:28px 18px;display:flex;flex-direction:column;align-items:center;gap:20px;}
+.rule-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+.rtag{font-family:'Press Start 2P',monospace;font-size:7px;padding:6px 10px;border-radius:4px;
+  border:var(--bw) solid var(--dark);box-shadow:var(--sh2);background:var(--cream2);color:var(--dark);}
+.rtag.a{background:var(--pp-pink);color:#fff;}.rtag.b{background:var(--pp-cyan);color:var(--dark);}
+.rtag.c{background:var(--pp-yellow);color:var(--dark);}
+.btn-demo{width:100%;padding:11px;background:var(--pp-purple);color:#fff;border:var(--bw) solid var(--dark);
+  border-radius:4px;font-family:'Press Start 2P',monospace;font-size:8px;cursor:pointer;
+  box-shadow:var(--sh);transition:transform .1s,box-shadow .1s;margin-top:10px;}
+.btn-demo:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--dark);}
+.demo-note{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dark2);text-align:center;margin-top:8px;line-height:1.7;}
+
+/* LOBBY */
+.lobby-wrap{max-width:780px;margin:0 auto;padding:28px 18px;}
+.lobby-title{font-family:'Press Start 2P',monospace;font-size:clamp(12px,2.5vw,20px);
+  color:var(--orange);text-align:center;margin-bottom:6px;line-height:1.5;}
+.lobby-sub{font-size:13px;font-weight:800;color:var(--dark2);text-align:center;margin-bottom:18px;}
+.prog-bar-wrap{background:var(--cream3);border:var(--bw) solid var(--dark);border-radius:4px;
+  height:28px;overflow:hidden;box-shadow:var(--sh2);margin-bottom:18px;position:relative;}
+.prog-bar-fill{height:100%;background:var(--pp-green);transition:width .5s ease;border-right:var(--bw) solid var(--dark);}
+.prog-bar-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dark);}
+.lobby-chars{display:grid;grid-template-columns:repeat(11,1fr);gap:6px;margin-bottom:20px;}
+.lcs{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;
+  background:var(--cream3);border:var(--bw) dashed #b8a890;border-radius:var(--r);transition:all .3s;}
+.lcs.joined{background:var(--cream2);border:var(--bw) solid var(--dark);box-shadow:var(--sh2);animation:slotPop .35s ease;}
+@keyframes slotPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.lcs-char{width:32px;height:32px;border:var(--bw) solid var(--dark);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;
+  font-size:10px;color:#fff;position:relative;box-shadow:var(--sh2);}
+.lcs-char::before{content:'';position:absolute;top:8px;left:4px;width:5px;height:5px;
+  background:rgba(255,255,255,.9);border-radius:0;box-shadow:9px 0 0 rgba(255,255,255,.9);}
+.lcs:not(.joined) .lcs-char{background:var(--cream3)!important;border:var(--bw) dashed #b8a890;box-shadow:none;color:transparent;}
+.lcs:not(.joined) .lcs-char::before{display:none;}
+.lcs-lbl{font-family:'Press Start 2P',monospace;font-size:5px;color:var(--dark2);text-align:center;
+  max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lcs:not(.joined) .lcs-lbl{color:#b8a890;}
+.lobby-me-card{background:var(--pp-yellow);border:var(--bw) solid var(--dark);border-radius:var(--r);
+  box-shadow:var(--sh);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.lobby-me-char{width:38px;height:38px;border:var(--bw) solid var(--dark);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;
+  font-size:12px;color:#fff;position:relative;box-shadow:var(--sh2);flex-shrink:0;animation:charBob .5s ease infinite alternate;}
+.lobby-me-char::before{content:'';position:absolute;top:9px;left:4px;width:5px;height:5px;
+  background:rgba(255,255,255,.9);border-radius:0;box-shadow:9px 0 0 rgba(255,255,255,.9);}
+.lobby-me-info h3{font-size:15px;font-weight:900;color:var(--dark);}
+.lobby-me-info p{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dark2);margin-top:4px;}
+.lobby-msg{text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dark2);padding:12px;line-height:1.9;}
+
+/* GET READY */
+#page-ready{background:var(--cream);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:20px;min-height:calc(100vh - 56px);}
+.ready-chars{display:flex;gap:8px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;}
+.rc{width:40px;height:40px;border:var(--bw) solid var(--dark);border-radius:5px;
+  position:relative;flex-shrink:0;box-shadow:var(--sh2);}
+.rc::before{content:'';position:absolute;top:10px;left:5px;width:6px;height:6px;
+  background:rgba(255,255,255,.9);border-radius:0;box-shadow:12px 0 0 rgba(255,255,255,.9);}
+.cnum{font-family:'Press Start 2P',monospace;font-size:clamp(70px,18vw,140px);
+  color:var(--orange);text-shadow:5px 5px 0 rgba(0,0,0,.12);line-height:1;animation:cPop .35s ease;}
+@keyframes cPop{from{transform:scale(1.5);opacity:.4}to{transform:scale(1);opacity:1}}
+.gotext{font-family:'Press Start 2P',monospace;font-size:clamp(50px,14vw,110px);
+  color:var(--pp-green);text-shadow:5px 5px 0 rgba(0,0,0,.1);line-height:1;animation:gPop .3s ease;}
+@keyframes gPop{from{transform:scale(.4) rotate(-15deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.ready-lbl{font-family:'Press Start 2P',monospace;font-size:clamp(10px,2.5vw,18px);
+  color:var(--dark);margin-top:14px;letter-spacing:2px;}
+
+/* BID */
+.bid-wrap{display:grid;grid-template-columns:1fr 300px;min-height:calc(100vh - 56px);}
+.bid-main{padding:20px 26px;overflow-y:auto;}
+.bid-side{padding:16px 14px;background:var(--cream2);border-left:var(--bw) solid var(--dark);
+  position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;}
+.bid-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;}
+.gbadge{display:flex;align-items:center;gap:9px;}
+.gav{width:40px;height:40px;border:var(--bw) solid var(--dark);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;
+  font-size:12px;color:#fff;box-shadow:var(--sh2);flex-shrink:0;position:relative;}
+.gav::before{content:'';position:absolute;top:9px;left:5px;width:5px;height:5px;
+  background:rgba(255,255,255,.9);border-radius:0;box-shadow:10px 0 0 rgba(255,255,255,.9);}
+.gnblock h2{font-size:16px;font-weight:900;color:var(--dark);}
+.gnblock p{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dark2);margin-top:2px;}
+.sctr{font-family:'Press Start 2P',monospace;font-size:8px;background:var(--pp-yellow);color:var(--dark);
+  border:var(--bw) solid var(--dark);padding:7px 11px;border-radius:4px;box-shadow:var(--sh2);white-space:nowrap;}
+.stats{display:flex;gap:8px;margin-bottom:16px;}
+.sbox{flex:1;background:var(--cream);border:var(--bw) solid var(--dark);border-radius:var(--r);
+  padding:9px 10px;text-align:center;box-shadow:var(--sh2);}
+.sbox .sv{font-family:'Press Start 2P',monospace;font-size:16px;color:var(--orange);}
+.sbox .sl{font-size:9px;font-weight:800;color:var(--dark2);margin-top:3px;text-transform:uppercase;}
+.sec-hd{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dark);
+  margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.sec-hd::after{content:'';flex:1;height:2px;background:var(--dark);}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:22px;}
+.mc{background:var(--cream);border:var(--bw) solid var(--dark);border-radius:var(--r);
+  padding:11px 12px;cursor:pointer;box-shadow:var(--sh2);
+  transition:transform .1s,box-shadow .1s,background .1s;position:relative;user-select:none;}
+.mc:hover:not(.taken):not(.sel){transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--dark);background:#fff;}
+.mc.sel{background:var(--pp-yellow);border-color:var(--dark);transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--dark);}
+.mc.taken{background:#e8ddd5;border-color:#b8a89a;cursor:not-allowed;opacity:.6;box-shadow:none;}
+.mc.taken:hover{transform:none;}
+.mc.ds{border-style:dashed;border-color:var(--pp-purple);}
+.mc.ds::after{content:'×2';position:absolute;top:5px;right:5px;font-family:'Press Start 2P',monospace;font-size:6px;
+  background:var(--pp-purple);color:#fff;padding:2px 4px;border-radius:3px;border:2px solid var(--dark);}
+.mc.ds.taken.ataken::after{content:'FULL';background:#b8726a;}
+.mnrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.mnum{font-family:'Press Start 2P',monospace;font-size:8px;background:var(--dark);color:#fff;padding:2px 5px;border-radius:3px;}
+.ttag{font-family:'Press Start 2P',monospace;font-size:6px;color:#b05040;border:2px solid #b05040;
+  padding:2px 4px;border-radius:3px;background:rgba(176,80,64,.08);max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mname{font-size:11px;font-weight:800;line-height:1.4;color:var(--dark);}
+.chk{position:absolute;top:6px;right:6px;width:17px;height:17px;background:var(--pp-green);
+  border:2px solid var(--dark);border-radius:3px;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;font-size:10px;color:#fff;font-weight:900;}
+.mc.sel .chk{opacity:1;}
+.sbs{margin-bottom:20px;}
+.sbh{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dark);
+  margin-bottom:9px;padding-bottom:5px;border-bottom:2px solid var(--dark);}
+.slots{display:flex;flex-direction:column;gap:6px;margin-bottom:11px;}
+.slot-i{background:var(--pp-yellow);border:var(--bw) solid var(--dark);border-radius:var(--r);
+  padding:8px 10px;font-size:11px;font-weight:800;display:flex;align-items:flex-start;gap:6px;
+  box-shadow:var(--sh2);animation:popin .2s ease;}
+@keyframes popin{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.sn{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--dark);color:#fff;
+  padding:2px 4px;border-radius:2px;white-space:nowrap;margin-top:2px;flex-shrink:0;}
+.eslot{border:var(--bw) dashed #b8a890;border-radius:var(--r);padding:13px;text-align:center;
+  font-family:'Press Start 2P',monospace;font-size:7px;color:#b8a890;background:rgba(255,255,255,.4);}
+.btn-sub{width:100%;padding:11px;background:var(--orange);color:#fff;border:var(--bw) solid var(--dark);
+  border-radius:4px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;
+  box-shadow:var(--sh);transition:transform .1s,box-shadow .1s;letter-spacing:1px;}
+.btn-sub:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--dark);}
+.btn-sub:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:var(--sh2);}
+.grows{display:flex;flex-direction:column;gap:5px;}
+.grow{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;
+  background:var(--cream);border:2px solid var(--dark);border-radius:4px;font-size:10px;font-weight:800;}
+.grow.me{background:var(--pp-cyan);border-color:var(--dark);}
+.grow .gn{max-width:116px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dots{display:flex;gap:3px;}
+.d{width:8px;height:8px;border-radius:0;border:2px solid var(--dark);background:var(--cream3);}
+.d.p{background:var(--pp-yellow);}.d.dn{background:var(--pp-green);}
+.wait-wrap{text-align:center;padding:56px 22px;}
+.pbig{font-family:'Press Start 2P',monospace;font-size:clamp(16px,3.5vw,28px);color:var(--orange);margin-bottom:12px;line-height:1.5;}
+.pbig span{color:var(--pp-green);}
+.wsub{font-size:15px;font-weight:800;color:var(--dark2);margin-bottom:28px;}
+.wchips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:560px;margin:0 auto;}
+.wc{font-family:'Press Start 2P',monospace;font-size:7px;padding:7px 11px;border-radius:4px;
+  border:var(--bw) solid var(--dark);background:var(--cream2);color:var(--dark2);box-shadow:var(--sh2);}
+.wc.dn{background:var(--pp-green);color:#fff;}
+.res-wrap{padding:26px;max-width:1100px;margin:0 auto;}
+.res-hd{text-align:center;margin-bottom:30px;}
+.rsub{font-size:13px;font-weight:800;color:var(--dark2);margin-top:6px;}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:13px;}
+.rcard{background:var(--cream2);border:var(--bw) solid var(--dark);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;animation:fup .35s ease both;}
+@keyframes fup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.rcard:nth-child(1){animation-delay:.03s}.rcard:nth-child(2){animation-delay:.06s}.rcard:nth-child(3){animation-delay:.09s}
+.rcard:nth-child(4){animation-delay:.12s}.rcard:nth-child(5){animation-delay:.15s}.rcard:nth-child(6){animation-delay:.18s}
+.rcard:nth-child(7){animation-delay:.21s}.rcard:nth-child(8){animation-delay:.24s}.rcard:nth-child(9){animation-delay:.27s}
+.rcard:nth-child(10){animation-delay:.30s}.rcard:nth-child(11){animation-delay:.33s}
+.rtop{padding:11px 13px;display:flex;align-items:center;gap:9px;background:var(--cream);}
+.rnum{width:36px;height:36px;border:var(--bw) solid var(--dark);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;
+  font-size:12px;box-shadow:var(--sh2);flex-shrink:0;color:#fff;position:relative;}
+.rnum::before{content:'';position:absolute;top:7px;left:4px;width:5px;height:5px;
+  background:rgba(255,255,255,.9);border-radius:0;box-shadow:9px 0 0 rgba(255,255,255,.9);}
+.rinfo h3{font-size:14px;font-weight:900;color:var(--dark);}
+.rinfo p{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--dark2);margin-top:2px;}
+.rmats{padding:9px 13px 13px;display:flex;flex-direction:column;gap:6px;border-top:2px solid var(--dark);background:var(--cream2);}
+.rmat{background:var(--cream);border:2px solid var(--dark);border-left:4px solid var(--pp-green);
+  border-radius:4px;padding:7px 9px;font-size:11px;font-weight:800;display:flex;align-items:flex-start;gap:6px;}
+.rmn{font-family:'Press Start 2P',monospace;font-size:7px;background:var(--pp-green);color:#fff;
+  padding:2px 4px;border-radius:2px;white-space:nowrap;margin-top:2px;flex-shrink:0;}
+.nosub{font-family:'Press Start 2P',monospace;font-size:7px;color:#b8a890;padding:10px 0;text-align:center;}
+.adm{padding:26px;max-width:920px;margin:0 auto;}
+.adm h1{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--orange);margin-bottom:22px;line-height:1.5;}
+.ac{background:var(--cream2);border:var(--bw) solid var(--dark);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px;}
+.ach{padding:9px 15px;background:var(--dark);color:var(--pp-yellow);font-family:'Press Start 2P',monospace;font-size:8px;border-bottom:var(--bw) solid var(--dark);}
+.acb{padding:16px 15px;}
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.atable{width:100%;border-collapse:collapse;font-size:12px;}
+.atable th{font-family:'Press Start 2P',monospace;font-size:7px;text-transform:uppercase;color:var(--dark2);padding:6px 9px;text-align:left;border-bottom:2px solid var(--dark);}
+.atable td{padding:7px 9px;border-bottom:1px solid var(--cream3);vertical-align:middle;font-weight:800;}
+.chip{font-family:'Press Start 2P',monospace;font-size:7px;padding:3px 6px;border-radius:3px;border:2px solid var(--dark);}
+.chip.p{background:var(--cream);color:#b8a890;border-color:#b8a890;}.chip.s{background:var(--pp-green);color:#fff;}.chip.l{background:var(--pp-yellow);color:var(--dark);}
+.btn-force{width:100%;padding:12px;background:var(--pp-yellow);color:var(--dark);border:var(--bw) solid var(--dark);
+  border-radius:4px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;box-shadow:var(--sh);
+  transition:transform .1s,box-shadow .1s;margin-bottom:10px;}
+.btn-force:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--dark);}
+.btn-rev{width:100%;padding:13px;background:var(--orange);color:#fff;border:var(--bw) solid var(--dark);
+  border-radius:4px;font-family:'Press Start 2P',monospace;font-size:8px;cursor:pointer;box-shadow:var(--sh);
+  transition:transform .1s,box-shadow .1s;}
+.btn-rev:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--dark);}
+.btn-rev:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.btn-rst{width:100%;padding:10px;background:var(--cream);color:#b05040;border:var(--bw) solid #b05040;border-radius:4px;
+  font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;box-shadow:2px 2px 0 #b05040;margin-top:9px;}
+.btn-rst:hover{transform:translate(-1px,-1px);}
+.btn-sv{background:var(--pp-cyan);color:var(--dark);border:var(--bw) solid var(--dark);border-radius:4px;padding:8px 16px;
+  font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;box-shadow:var(--sh2);}
+.mbg{position:fixed;inset:0;background:rgba(45,42,38,.78);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.mbg.show{opacity:1;pointer-events:all;}
+.modal{background:var(--cream);border:var(--bw) solid var(--dark);border-radius:var(--r);box-shadow:6px 6px 0 var(--dark);padding:26px 22px;max-width:420px;width:92%;transform:scale(.92);transition:transform .2s;}
+.mbg.show .modal{transform:scale(1);}
+.modal h2{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--orange);margin-bottom:9px;line-height:1.5;}
+.modal p{font-size:13px;font-weight:800;color:var(--dark2);margin-bottom:18px;line-height:1.6;}
+.mbtns{display:flex;gap:8px;}
+.btn-bk{flex:1;padding:10px;background:var(--cream2);color:var(--dark);border:var(--bw) solid var(--dark);border-radius:4px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;box-shadow:var(--sh2);}
+.errm{font-family:'Press Start 2P',monospace;font-size:7px;color:#b05040;margin-top:9px;display:none;}
+.toast{position:fixed;bottom:46px;right:18px;background:var(--dark);color:var(--pp-yellow);border:var(--bw) solid var(--pp-yellow);
+  padding:9px 14px;border-radius:4px;font-family:'Press Start 2P',monospace;font-size:8px;z-index:300;
+  opacity:0;transform:translateY(8px);transition:all .25s;box-shadow:var(--sh);}
+.toast.show{opacity:1;transform:translateY(0);}
+@media(max-width:760px){
+  .bid-wrap{grid-template-columns:1fr;}
+  .bid-side{position:static;height:auto;border-left:none;border-top:var(--bw) solid var(--dark);}
+  header{padding:9px 14px;}.logo{font-size:9px;}
+  .bid-main,.res-wrap,.adm,.lobby-wrap,.reg-wrap,.setup-wrap{padding:13px;}
+  .lobby-chars{grid-template-columns:repeat(6,1fr);}
+  .agrid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="ground"></div>
+<div class="app">
+
+<header>
+  <div><div class="logo">MaterialBID 🧱</div><div class="logo-bar"></div></div>
+  <div class="hdr">
+    <div class="live-pill"><div class="ldot"></div>LIVE</div>
+    <button class="adm-btn" onclick="openAdm()">⚙ ADMIN</button>
+  </div>
+</header>
+<div class="sync-bar">
+  <div class="sdot" id="sdot"></div>
+  <span id="smsg">NOT CONNECTED</span>
+  &nbsp;|&nbsp; SESSION: <span id="ssid" style="color:var(--pp-blue);cursor:pointer" onclick="copyId()">—</span>
+</div>
+
+<!-- ═══ SETUP ═══ -->
+<div id="page-setup" class="page active">
+  <div class="setup-wrap">
+    <div><div class="game-title">🧱 MATERIALBID!</div><div class="game-title-bar"></div></div>
+    <div class="char-row">
+      <div class="char" style="background:var(--pp-pink)"></div>
+      <div class="char" style="background:var(--pp-cyan);animation-delay:.07s"></div>
+      <div class="char" style="background:var(--pp-yellow);animation-delay:.14s"></div>
+      <div class="char" style="background:var(--pp-green);animation-delay:.21s"></div>
+      <div class="char" style="background:var(--pp-purple);animation-delay:.28s"></div>
+      <div class="char" style="background:var(--pp-blue);animation-delay:.35s"></div>
+    </div>
+
+    <!-- TEACHER: Create session -->
+    <div class="card" style="width:100%">
+      <div class="card-h" style="background:var(--orange)">🎓 TEACHER — CREATE NEW SESSION</div>
+      <div class="card-b">
+        <div class="token-note">
+          <strong>One-time setup (30 seconds):</strong><br/>
+          1. Go to <a href="https://gist.github.com" target="_blank">gist.github.com</a><br/>
+          2. Create a new <strong>Public</strong> gist, filename: <code>mbid.json</code>, content: <code>{}</code><br/>
+          3. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br/>
+          4. Give it a name, check <code>gist</code> scope, click Generate<br/>
+          5. Paste both below ↓
+        </div>
+        <div class="fg" style="margin-top:14px">
+          <label>GITHUB TOKEN (starts with ghp_)</label>
+          <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx"/>
+        </div>
+        <div class="fg">
+          <label>GIST ID (from the URL: gist.github.com/user/<strong>THIS PART</strong>)</label>
+          <input type="text" id="gh-gist-id" placeholder="e.g. a1b2c3d4e5f6..."/>
+        </div>
+        <button class="btn-go" onclick="teacherSetup()">▶ CREATE SESSION</button>
+      </div>
+    </div>
+
+    <div class="divider">OR</div>
+
+    <!-- STUDENT: Join session -->
+    <div class="card" style="width:100%">
+      <div class="card-h" style="background:var(--pp-blue)">🎮 STUDENT — JOIN SESSION</div>
+      <div class="card-b">
+        <p style="font-size:12px;font-weight:800;color:var(--dark2);margin-bottom:14px;line-height:1.6;">
+          Your teacher will share a <strong>Session ID</strong>. Paste it below to join.
+        </p>
+        <div class="fg">
+          <label>SESSION ID (from your teacher)</label>
+          <input type="text" id="join-sid" placeholder="Paste Session ID here" style="font-family:'Press Start 2P',monospace;font-size:10px;letter-spacing:1px"/>
+        </div>
+        <button class="btn-go" style="background:var(--pp-blue)" onclick="studentJoin()">🔗 JOIN SESSION</button>
+      </div>
+    </div>
+
+    <div class="card" style="width:100%;border-color:var(--pp-purple);box-shadow:3px 3px 0 var(--pp-purple)">
+      <div class="card-h" style="background:var(--pp-purple)">🎮 QUICK DEMO (no setup needed)</div>
+      <div class="card-b">
+        <p style="font-size:12px;font-weight:800;color:var(--dark2);margin-bottom:14px;line-height:1.6;">
+          Test the full flow locally in one browser tab — no sync, no token needed.
+        </p>
+        <button class="btn-go" style="background:var(--pp-purple)" onclick="localDemo()">▶ RUN LOCAL DEMO</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REGISTER ═══ -->
+<div id="page-register" class="page">
+  <div class="reg-wrap">
+    <div><div class="game-title">🏗 MATERIALBID!</div><div class="game-title-bar"></div></div>
+    <div class="char-row">
+      <div class="char" style="background:var(--pp-pink)"></div><div class="char" style="background:var(--pp-cyan);animation-delay:.07s"></div>
+      <div class="char" style="background:var(--pp-yellow);animation-delay:.14s"></div><div class="char" style="background:var(--pp-tan);animation-delay:.21s"></div>
+      <div class="char" style="background:var(--pp-magenta);animation-delay:.28s"></div><div class="char" style="background:var(--pp-green);animation-delay:.35s"></div>
+      <div class="char" style="background:var(--pp-grey);animation-delay:.42s"></div><div class="char" style="background:var(--pp-blue);animation-delay:.49s"></div>
+      <div class="char" style="background:var(--pp-purple);animation-delay:.56s"></div><div class="char" style="background:var(--pp-lime);animation-delay:.63s"></div>
+      <div class="char" style="background:var(--pp-red);animation-delay:.70s"></div>
+    </div>
+    <p style="font-size:14px;font-weight:800;color:var(--dark2);text-align:center;line-height:1.7;">Each group claims 2 material sets.<br/>First come, first served — be fast! 🏃</p>
+    <div class="rule-row">
+      <span class="rtag a">⚡ FIRST COME FIRST SERVED</span>
+      <span class="rtag b">🔒 UNIQUE PER GROUP</span>
+      <span class="rtag c">📦 PICK EXACTLY 2</span>
+    </div>
+    <div class="card">
+      <div class="card-h">▶ REGISTER YOUR GROUP</div>
+      <div class="card-b">
+        <div class="fg"><label>GROUP NUMBER</label>
+          <select id="gsel" onchange="onGC()"><option value="">— SELECT YOUR GROUP —</option></select>
+        </div>
+        <div class="fg"><label>GROUP NAME <span style="color:#b8a890;font-size:6px">(OPTIONAL)</span></label>
+          <input type="text" id="gname" placeholder="e.g. Studio Alpha" maxlength="30"/>
+        </div>
+        <button class="btn-go" id="sbtn" onclick="doRegister()" disabled>▶ JOIN LOBBY</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOBBY ═══ -->
+<div id="page-lobby" class="page">
+  <div class="lobby-wrap">
+    <div class="lobby-me-card">
+      <div class="lobby-me-char" id="lobby-my-char"></div>
+      <div class="lobby-me-info"><h3 id="lobby-my-name">Group 1</h3><p>YOU'RE IN THE LOBBY 🎮</p></div>
+    </div>
+    <div class="lobby-title" id="lobby-title">WAITING FOR ALL GROUPS…</div>
+    <div class="lobby-sub" id="lobby-sub">0 of 11 groups joined</div>
+    <div class="prog-bar-wrap">
+      <div class="prog-bar-fill" id="prog-fill" style="width:0%"></div>
+      <div class="prog-bar-txt" id="prog-txt">0 / 11</div>
+    </div>
+    <div class="lobby-chars" id="lobby-chars"></div>
+    <div class="lobby-msg">BIDDING STARTS WHEN ALL GROUPS JOIN<br/><span style="font-size:6px;color:#b8a890">admin can force-start early from ⚙ ADMIN</span></div>
+  </div>
+</div>
+
+<!-- ═══ GET READY ═══ -->
+<div id="page-ready" class="page">
+  <div class="ready-chars" id="ready-chars"></div>
+  <div id="cdisp"></div>
+  <div class="ready-lbl" id="ready-lbl">GET READY!</div>
+</div>
+
+<!-- ═══ BID ═══ -->
+<div id="page-bid" class="page">
+  <div class="bid-wrap">
+    <div class="bid-main">
+      <div class="bid-top">
+        <div class="gbadge">
+          <div class="gav" id="bav">1</div>
+          <div class="gnblock"><h2 id="bgn">Group 1</h2><p>PICK EXACTLY 2 MATERIAL SETS</p></div>
+        </div>
+        <div class="sctr" id="sctr">0 / 2 PICKED</div>
+      </div>
+      <div class="stats">
+        <div class="sbox"><div class="sv" id="stav">22</div><div class="sl">Available</div></div>
+        <div class="sbox"><div class="sv" id="sttk">0</div><div class="sl">Taken</div></div>
+        <div class="sbox"><div class="sv" id="stdn">0</div><div class="sl">Done</div></div>
+      </div>
+      <div class="sec-hd">🧱 ALL MATERIAL SETS</div>
+      <div class="mgrid" id="mgrid"></div>
+    </div>
+    <div class="bid-side">
+      <div class="sbs">
+        <div class="sbh">🎯 YOUR PICKS</div>
+        <div class="slots" id="slots"><div class="eslot">SLOT 01 — EMPTY</div><div class="eslot">SLOT 02 — EMPTY</div></div>
+        <button class="btn-sub" id="subbtn" onclick="confirmSub()" disabled>✔ CONFIRM PICKS</button>
+      </div>
+      <div class="sbs"><div class="sbh">👥 GROUP STATUS</div><div class="grows" id="grows"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WAITING ═══ -->
+<div id="page-waiting" class="page">
+  <div class="wait-wrap">
+    <div class="char-row" style="margin-bottom:20px">
+      <div class="char" style="background:var(--pp-green)"></div>
+      <div class="char" style="animation-delay:.15s;background:var(--pp-yellow)"></div>
+      <div class="char" style="animation-delay:.3s;background:var(--pp-cyan)"></div>
+    </div>
+    <div class="pbig">BID <span>LOCKED!</span></div>
+    <p class="wsub">Your materials are saved.<br/>Admin will reveal results when everyone is done.</p>
+    <div class="wchips" id="wchips"></div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══ -->
+<div id="page-results" class="page">
+  <div class="res-wrap">
+    <div class="res-hd">
+      <div class="char-row" style="margin-bottom:14px">
+        <div class="char" style="background:var(--pp-pink)"></div><div class="char" style="background:var(--pp-cyan);animation-delay:.07s"></div>
+        <div class="char" style="background:var(--pp-yellow);animation-delay:.14s"></div><div class="char" style="background:var(--pp-tan);animation-delay:.21s"></div>
+        <div class="char" style="background:var(--pp-magenta);animation-delay:.28s"></div><div class="char" style="background:var(--pp-green);animation-delay:.35s"></div>
+        <div class="char" style="background:var(--pp-grey);animation-delay:.42s"></div><div class="char" style="background:var(--pp-blue);animation-delay:.49s"></div>
+        <div class="char" style="background:var(--pp-purple);animation-delay:.56s"></div><div class="char" style="background:var(--pp-lime);animation-delay:.63s"></div>
+        <div class="char" style="background:var(--pp-red);animation-delay:.70s"></div>
+      </div>
+      <div class="pbig">🏆 FINAL <span style="color:var(--dark)">RESULTS</span></div>
+      <div class="rsub" id="rsub"></div>
+    </div>
+    <div class="rgrid" id="rgrid"></div>
+    <div style="text-align:center;margin-top:28px">
+      <button class="btn-rst" style="width:auto;padding:10px 20px;display:inline-block" onclick="resetAll()">🔄 RESET SESSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div id="page-admin" class="page">
+  <div class="adm">
+    <h1>⚙ ADMIN PANEL</h1>
+    <div class="ac" style="border-color:var(--pp-cyan);box-shadow:3px 3px 0 var(--pp-cyan)">
+      <div class="ach" style="background:var(--pp-cyan);color:var(--dark)">📡 SESSION INFO</div>
+      <div class="acb">
+        <p style="font-size:12px;font-weight:800;color:var(--dark2);margin-bottom:12px;line-height:1.7;">Share this Session ID with students — they paste it on the home screen to join.</p>
+        <div style="background:var(--dark);color:var(--pp-yellow);border:var(--bw) solid var(--dark);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--sh);margin-bottom:12px;">
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--pp-cyan);margin-bottom:8px">SESSION ID — SHARE THIS WITH STUDENTS</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:14px;letter-spacing:2px;word-break:break-all" id="adm-sid">—</div>
+        </div>
+        <button class="btn-sv" style="width:100%;padding:10px" onclick="copyId()">📋 COPY SESSION ID</button>
+        <p style="font-size:11px;font-weight:800;color:var(--dark2);margin-top:10px" id="lobby-adm-status">0 groups in lobby.</p>
+      </div>
+    </div>
+    <div class="ac"><div class="ach">▶ SETTINGS</div><div class="acb">
+      <div class="agrid">
+        <div class="fg"><label>NUMBER OF GROUPS</label>
+          <select id="angrp">
+            <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+            <option value="8">8</option><option value="9">9</option><option value="10">10</option>
+            <option value="11" selected>11</option><option value="12">12</option>
+            <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+          </select>
+        </div>
+        <div class="fg"><label>ADMIN PASSWORD</label><input type="password" id="apwset" value="admin123"/></div>
+      </div>
+      <button class="btn-sv" onclick="saveSett()">💾 SAVE</button>
+    </div></div>
+    <div class="ac"><div class="ach">🚀 LOBBY CONTROL</div><div class="acb">
+      <button class="btn-force" onclick="adminForceStart()">⚡ FORCE START BIDDING NOW</button>
+    </div></div>
+    <div class="ac"><div class="ach">📋 SUBMISSIONS</div>
+      <div class="acb" style="padding:0">
+        <table class="atable">
+          <thead><tr><th>#</th><th>NAME</th><th>PICK 1</th><th>PICK 2</th><th>STATUS</th></tr></thead>
+          <tbody id="atbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ac"><div class="ach">🏆 REVEAL RESULTS</div><div class="acb">
+      <button class="btn-rev" id="brev" onclick="doReveal()">🎉 REVEAL FINAL RESULTS TO ALL</button>
+      <button class="btn-rst" onclick="resetAll()">🗑 RESET ENTIRE SESSION</button>
+    </div></div>
+  </div>
+</div>
+
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="mbg" id="admm">
+  <div class="modal">
+    <h2>⚙ ADMIN ACCESS</h2><p>Enter the admin password.</p>
+    <div class="fg"><label>PASSWORD</label><input type="password" id="apwin" placeholder="Enter password" onkeydown="if(event.key==='Enter')tryLogin()"/></div>
+    <div class="mbtns">
+      <button class="btn-bk" onclick="closeAdm()">✕ CANCEL</button>
+      <button class="btn-go" style="flex:1;padding:10px;font-size:8px;" onclick="tryLogin()">▶ ENTER</button>
+    </div>
+    <div class="errm" id="aerr">✕ WRONG PASSWORD!</div>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="mbg" id="confm">
+  <div class="modal">
+    <h2>✔ CONFIRM PICKS?</h2><p id="ctxt"></p>
+    <div class="mbtns">
+      <button class="btn-bk" onclick="closeConf()">✕ GO BACK</button>
+      <button class="btn-go" style="flex:1;padding:10px;font-size:8px;" onclick="doSub()">✔ LOCK IN!</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════
+//  DATA
+// ══════════════════════════════
+const MATS=[
+  {id:1,name:"Polycarbonate + ETFE (Ethylene Tetrafluoroethylene)",ds:true},
+  {id:2,name:"Polyurethane (PU) + Rubber (Recycled Rubber / EPDM)",ds:true},
+  {id:3,name:"Protective / Surface Finishes [Weatherproof Wood Sealants / Oils + Powder-Coated Finishes]"},
+  {id:4,name:"Exterior-Grade Paints (Elastomeric) + (Acrylic)"},
+  {id:5,name:"Concrete + Autoclaved Aerated Concrete (AAC)"},
+  {id:6,name:"Brick / Clay Masonry + Concrete Blocks"},
+  {id:7,name:"Perforated Aluminium + Stainless Steel Mesh"},
+  {id:8,name:"Metal [('Zincalume') + ('Colorbond' Steel)]"},
+  {id:9,name:"Fiber Cement Board + Plywood (Marine or Exterior Grade)"},
+  {id:10,name:"Large Format Tiles + 'Carrara' / or 'Statuario' Marble"},
+  {id:11,name:"Ultra-compact surfaces ['High-Pressure Compact Laminate Panel / Phenolic Panel' + 'Sintered Stone']"},
+  {id:12,name:"Thermally Modified Wood + Bamboo (Treated / Engineered)"},
+  {id:13,name:"High Pressure Laminate Panel + Wood Veneer Panel"},
+  {id:14,name:"Solid Surface + Engineered Stone (Quartz Stone)"},
+  {id:15,name:"Wood-Plastic Composite (WPC) + Engineered Wood"},
+  {id:16,name:"Stone [Granite + Basalt]"},
+  {id:17,name:"Glass [Low-E glass + Self-Cleaning Glass]"},
+  {id:18,name:"Glass [Fritted glass + Acid-Etched / Sandblasted Glass]"},
+  {id:19,name:"Glass [Cast/textured glass + Channel Glass (U-Glass)]"},
+  {id:20,name:"SPC [Stone Plastic Composite] + Vinyl Floor"},
+];
+const GCOLS=['#f47fba','#5fcfea','#f5d84a','#6aca6a','#a07aea','#f4633a','#c8c8c8','#5a9cf5','#a0d84a','#e05aaa','#c4956a'];
+const GTXT= ['#fff','#2d2a26','#2d2a26','#fff','#fff','#fff','#2d2a26','#fff','#2d2a26','#fff','#fff'];
+const DEMO_NAMES=['Studio Alpha','Team Beta','Design Crew','Builders Co','The Makers','Pixel Gang','Arch Squad','Form Lab','Studio X','Material Nerds','The Last Ones'];
+const DEFAULT={totalGroups:11,adminPassword:'admin123',lobby:{},biddingOpen:false,submissions:{},revealed:false,v:0};
+
+// ══════════════════════════════
+//  STATE
+// ══════════════════════════════
+let S={...DEFAULT};
+let cG=null,mySel=[],countdownRunning=false,pollTimer=null;
+let GH_TOKEN=null,GIST_ID=null,SESSION_ID=null;
+let isRemote=false; // true = using GitHub Gist sync
+
+// ══════════════════════════════
+//  GITHUB GIST SYNC
+// ══════════════════════════════
+async function gistRead(){
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{
+      headers:GH_TOKEN?{Authorization:`token ${GH_TOKEN}`}:{}
+    });
+    if(!r.ok)return null;
+    const d=await r.json();
+    const content=d.files['mbid.json']?.content||d.files[Object.keys(d.files)[0]]?.content;
+    if(!content)return null;
+    return JSON.parse(content);
+  }catch(e){return null;}
+}
+async function gistWrite(state){
+  if(!GH_TOKEN||!GIST_ID)return false;
+  try{
+    setSS('busy','SYNCING…');
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{
+      method:'PATCH',
+      headers:{Authorization:`token ${GH_TOKEN}`,'Content-Type':'application/json'},
+      body:JSON.stringify({files:{'mbid.json':{content:JSON.stringify(state)}}})
+    });
+    if(!r.ok)throw new Error();
+    S=state;setSS('ok','SYNCED ✓');return true;
+  }catch(e){setSS('err','SYNC ERROR');return false;}
+}
+function setSS(cls,msg){
+  document.getElementById('sdot').className='sdot '+cls;
+  document.getElementById('smsg').textContent=msg;
+}
+function startPoll(){
+  if(pollTimer)clearInterval(pollTimer);
+  if(!isRemote)return;
+  pollTimer=setInterval(async()=>{
+    const remote=await gistRead();
+    if(!remote){setSS('err','NO CONNECTION');return;}
+    setSS('ok','SYNCED ✓');
+    if(remote.v===S.v)return;
+    const prev={...S};S={...DEFAULT,...remote};
+    onStateChange(prev);
+  },3000);
+}
+function onStateChange(prev){
+  if(!prev.revealed&&S.revealed){showPage('results');renderResults();return;}
+  if(!prev.biddingOpen&&S.biddingOpen&&!countdownRunning){countdownRunning=true;launchCountdown();return;}
+  const cur=document.querySelector('.page.active')?.id;
+  if(cur==='page-lobby'){renderLobbyUI();}
+  if(cur==='page-bid'){renderGrid();renderGrows();updStats();}
+  if(cur==='page-waiting'){renderWait();}
+  if(cur==='page-admin'){refreshAdm();}
+  buildSel();
+}
+
+// ══════════════════════════════
+//  SESSION SETUP
+// ══════════════════════════════
+async function teacherSetup(){
+  const tok=document.getElementById('gh-token').value.trim();
+  const gid=document.getElementById('gh-gist-id').value.trim();
+  if(!tok||!gid){showToast('⚠ FILL IN BOTH FIELDS');return;}
+  GH_TOKEN=tok;GIST_ID=gid;
+  setSS('busy','CONNECTING…');
+  // reset gist to fresh state
+  const ns={...DEFAULT};
+  const ok=await gistWrite(ns);
+  if(!ok){showToast('❌ COULD NOT CONNECT — CHECK TOKEN & GIST ID');return;}
+  SESSION_ID=GIST_ID;
+  isRemote=true;
+  document.getElementById('ssid').textContent=SESSION_ID;
+  document.getElementById('adm-sid').textContent=SESSION_ID;
+  // save token locally for this tab
+  try{localStorage.setItem('mbid_gh_token',tok);}catch(e){}
+  startPoll();
+  showPage('register');
+  buildSel();
+  showToast('✅ SESSION CREATED!');
+}
+
+async function studentJoin(){
+  const sid=document.getElementById('join-sid').value.trim();
+  if(!sid){showToast('⚠ PASTE A SESSION ID');return;}
+  GIST_ID=sid;SESSION_ID=sid;
+  // students don't need a token to read public gists
+  setSS('busy','CONNECTING…');
+  const state=await gistRead();
+  if(!state){showToast('❌ SESSION NOT FOUND — CHECK ID');GIST_ID=null;return;}
+  S={...DEFAULT,...state};
+  isRemote=true;
+  document.getElementById('ssid').textContent=SESSION_ID;
+  startPoll();
+  setSS('ok','CONNECTED ✓');
+  if(S.revealed){showPage('results');renderResults();return;}
+  if(S.biddingOpen){countdownRunning=true;launchCountdown();return;}
+  showPage('register');buildSel();
+  showToast('✅ JOINED SESSION!');
+}
+
+// ══════════════════════════════
+//  LOCAL DEMO (no sync)
+// ══════════════════════════════
+function localDemo(){
+  isRemote=false;
+  S={...DEFAULT};
+  for(let i=1;i<=S.totalGroups;i++)S.lobby[i]=DEMO_NAMES[i-1]||`Group ${i}`;
+  cG=1;
+  setSS('','LOCAL DEMO MODE');
+  document.getElementById('ssid').textContent='LOCAL';
+  renderLobbyUI();showPage('lobby');
+  setTimeout(()=>{S.biddingOpen=true;countdownRunning=true;launchCountdown();},1200);
+}
+
+// ══════════════════════════════
+//  WRITE HELPER (sync or local)
+// ══════════════════════════════
+async function writeState(ns){
+  ns.v=(ns.v||0)+1;
+  if(isRemote){return await gistWrite(ns);}
+  S=ns;return true;
+}
+
+// ══════════════════════════════
+//  BUILD SELECT
+// ══════════════════════════════
+function buildSel(){
+  const s=document.getElementById('gsel');const cur=s.value;
+  s.innerHTML='<option value="">— SELECT YOUR GROUP —</option>';
+  for(let i=1;i<=S.totalGroups;i++){
+    const taken=S.lobby[i];
+    s.innerHTML+=`<option value="${i}" ${taken&&i!==cG?'disabled':''}>${taken?'✓ ':''}GROUP ${i}${taken?` — ${taken}`:''}</option>`;
+  }
+  if(cur)s.value=cur;
+}
+function onGC(){document.getElementById('sbtn').disabled=!document.getElementById('gsel').value;}
+
+// ══════════════════════════════
+//  REGISTER
+// ══════════════════════════════
+async function doRegister(){
+  const gid=parseInt(document.getElementById('gsel').value);if(!gid)return;
+  if(S.lobby[gid]){showToast('Group already in lobby!');return;}
+  const nm=document.getElementById('gname').value.trim()||`Group ${gid}`;
+  cG=gid;
+  const ns={...S,lobby:{...S.lobby,[gid]:nm}};
+  setSS('busy','JOINING…');
+  const ok=await writeState(ns);
+  if(!ok){showToast('❌ FAILED — RETRY');cG=null;return;}
+  renderLobbyUI();showPage('lobby');checkLobbyFull();
+}
+
+function renderLobbyUI(){
+  if(!cG)return;
+  const mc=document.getElementById('lobby-my-char');
+  const idx=(cG-1)%GCOLS.length;
+  mc.style.background=GCOLS[idx];mc.style.color=GTXT[idx];mc.textContent=cG;
+  document.getElementById('lobby-my-name').textContent=S.lobby[cG]||`Group ${cG}`;
+  const grid=document.getElementById('lobby-chars');grid.innerHTML='';
+  const joined=Object.keys(S.lobby).length;
+  const pct=Math.round((joined/S.totalGroups)*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-txt').textContent=`${joined} / ${S.totalGroups}`;
+  document.getElementById('lobby-sub').textContent=`${joined} of ${S.totalGroups} groups joined`;
+  const t=document.getElementById('lobby-title');
+  if(joined>=S.totalGroups){t.textContent='ALL GROUPS PRESENT! 🎉';t.style.color='var(--pp-green)';}
+  else{t.textContent='WAITING FOR ALL GROUPS…';t.style.color='var(--orange)';}
+  for(let i=1;i<=S.totalGroups;i++){
+    const nm=S.lobby[i];const ci=(i-1)%GCOLS.length;
+    grid.innerHTML+=`<div class="lcs ${nm?'joined':''}">
+      <div class="lcs-char" style="${nm?`background:${GCOLS[ci]};color:${GTXT[ci]}`:''}>${nm?i:'?'}</div>
+      <div class="lcs-lbl">${nm||`G${i}`}</div>
+    </div>`;
+  }
+}
+async function checkLobbyFull(){
+  const joined=Object.keys(S.lobby).length;
+  if(joined>=S.totalGroups&&!S.biddingOpen){
+    await writeState({...S,biddingOpen:true});
+    countdownRunning=true;launchCountdown();
+  }
+}
+
+// ══════════════════════════════
+//  COUNTDOWN
+// ══════════════════════════════
+function launchCountdown(){
+  showPage('ready');
+  const rc=document.getElementById('ready-chars');rc.innerHTML='';
+  for(let i=1;i<=S.totalGroups;i++){
+    const ci=(i-1)%GCOLS.length;
+    rc.innerHTML+=`<div class="rc" style="background:${GCOLS[ci]};animation:charBob ${.5+i*.03}s ease infinite alternate;animation-delay:${i*.05}s"></div>`;
+  }
+  runCount(3);
+}
+function runCount(n){
+  const d=document.getElementById('cdisp'),l=document.getElementById('ready-lbl');
+  if(n>0){d.innerHTML=`<div class="cnum">${n}</div>`;l.textContent='GET READY!';setTimeout(()=>runCount(n-1),900);}
+  else{d.innerHTML=`<div class="gotext">GO!</div>`;l.textContent='BIDDING IS OPEN!';setTimeout(()=>enterBid(),700);}
+}
+
+// ══════════════════════════════
+//  BIDDING
+// ══════════════════════════════
+function enterBid(){
+  if(!cG){showPage('register');return;}
+  const nm=S.lobby[cG]||`Group ${cG}`;const ci=(cG-1)%GCOLS.length;
+  const av=document.getElementById('bav');av.textContent=cG;av.style.background=GCOLS[ci];av.style.color=GTXT[ci];
+  document.getElementById('bgn').textContent=nm;
+  mySel=[];renderGrid();renderGrows();renderSlots();updStats();showPage('bid');
+}
+function getTM(){
+  const m={};
+  Object.entries(S.submissions).forEach(([g,sub])=>{sub.picks.forEach(id=>{if(!m[id])m[id]=[];m[id].push(sub.name||`G${g}`);});});
+  return m;
+}
+function isFull(id,tm){const mat=MATS.find(x=>x.id===id);return (tm[id]||[]).length>=(mat.ds?2:1);}
+function renderGrid(){
+  const tm=getTM();
+  document.getElementById('mgrid').innerHTML=MATS.map(m=>{
+    const takers=tm[m.id]||[];const full=takers.length>=(m.ds?2:1);const isSel=mySel.includes(m.id);const blocked=full&&!isSel;
+    let tl='';if(full)tl='<span class="ttag">TAKEN</span>';else if(takers.length>0)tl=`<span class="ttag">${takers[0]}</span>`;
+    return `<div class="mc ${blocked?'taken':''} ${isSel?'sel':''} ${m.ds?'ds':''} ${full&&!isSel?'ataken':''}" onclick="togMat(${m.id})" id="mc${m.id}">
+      <div class="mnrow"><span class="mnum">#${String(m.id).padStart(2,'0')}</span>${tl}</div>
+      <div class="mname">${m.name}</div><div class="chk">✓</div></div>`;
+  }).join('');
+}
+function togMat(id){
+  const tm=getTM();if(isFull(id,tm)&&!mySel.includes(id)){showToast('🚫 ALREADY TAKEN!');return;}
+  const card=document.getElementById(`mc${id}`);
+  if(mySel.includes(id)){mySel=mySel.filter(x=>x!==id);card.classList.remove('sel');}
+  else{if(mySel.length>=2){showToast('⚠ ONLY PICK 2!');return;}mySel.push(id);card.classList.add('sel');}
+  renderSlots();renderGrows();updStats();
+  document.getElementById('sctr').textContent=`${mySel.length} / 2 PICKED`;
+  document.getElementById('subbtn').disabled=mySel.length!==2;
+}
+function renderSlots(){
+  document.getElementById('slots').innerHTML=[0,1].map(i=>{
+    if(mySel[i]){const m=MATS.find(x=>x.id===mySel[i]);
+      return `<div class="slot-i"><span class="sn">#${String(m.id).padStart(2,'0')}</span><span style="font-size:11px;line-height:1.35">${m.name}</span></div>`;}
+    return `<div class="eslot">SLOT 0${i+1} — EMPTY</div>`;
+  }).join('');
+}
+function renderGrows(){
+  const list=document.getElementById('grows');list.innerHTML='';
+  for(let i=1;i<=S.totalGroups;i++){
+    const sub=S.submissions[i];const isMe=i===cG;const dc=isMe?mySel.length:(sub?2:0);const done=!!sub;
+    list.innerHTML+=`<div class="grow ${isMe?'me':''}"><span class="gn">${sub?.name||S.lobby[i]||`Group ${i}`}${isMe?' 🎮':''}</span>
+      <div class="dots"><div class="d ${dc>=1?(done?'dn':'p'):''}"></div><div class="d ${dc>=2?(done?'dn':'p'):''}"></div></div></div>`;
+  }
+}
+function updStats(){
+  const tm=getTM();let taken=0;
+  MATS.forEach(m=>{const cap=m.ds?2:1;taken+=Math.min((tm[m.id]||[]).length,cap);});
+  document.getElementById('stav').textContent=22-taken;document.getElementById('sttk').textContent=taken;
+  document.getElementById('stdn').textContent=Object.keys(S.submissions).length;
+}
+function confirmSub(){
+  if(mySel.length!==2)return;
+  const ns=mySel.map(id=>{const m=MATS.find(x=>x.id===id);return `<strong>#${String(m.id).padStart(2,'0')} — ${m.name}</strong>`;});
+  document.getElementById('ctxt').innerHTML=`Locking in:<br><br>${ns[0]}<br><br>${ns[1]}<br><br>This cannot be changed!`;
+  document.getElementById('confm').classList.add('show');
+}
+function closeConf(){document.getElementById('confm').classList.remove('show');}
+async function doSub(){
+  closeConf();
+  const tm=getTM();const clash=mySel.find(id=>isFull(id,tm));
+  if(clash){const m=MATS.find(x=>x.id===clash);showToast(`#${m.id} just taken! Re-pick.`);
+    mySel=mySel.filter(id=>!isFull(id,tm));renderGrid();renderSlots();updStats();
+    document.getElementById('sctr').textContent=`${mySel.length} / 2 PICKED`;document.getElementById('subbtn').disabled=true;return;}
+  const nm=S.lobby[cG]||`Group ${cG}`;
+  const ok=await writeState({...S,submissions:{...S.submissions,[cG]:{name:nm,picks:[...mySel]}}});
+  if(!ok){showToast('❌ SAVE FAILED — RETRY');return;}
+  showToast('🎉 LOCKED IN!');showPage('waiting');renderWait();
+}
+function renderWait(){
+  const c=document.getElementById('wchips');c.innerHTML='';
+  for(let i=1;i<=S.totalGroups;i++){const d=!!S.submissions[i];c.innerHTML+=`<div class="wc ${d?'dn':''}">G${i} ${d?'✓':'…'}</div>`;}
+}
+
+// ══════════════════════════════
+//  ADMIN
+// ══════════════════════════════
+function openAdm(){document.getElementById('admm').classList.add('show');document.getElementById('apwin').value='';document.getElementById('aerr').style.display='none';setTimeout(()=>document.getElementById('apwin').focus(),80);}
+function closeAdm(){document.getElementById('admm').classList.remove('show');}
+function tryLogin(){
+  if(document.getElementById('apwin').value===S.adminPassword){closeAdm();showPage('admin');refreshAdm();document.getElementById('angrp').value=S.totalGroups;document.getElementById('apwset').value=S.adminPassword;}
+  else{document.getElementById('aerr').style.display='block';}
+}
+async function saveSett(){
+  const ns={...S,totalGroups:parseInt(document.getElementById('angrp').value)};
+  const pw=document.getElementById('apwset').value.trim();if(pw)ns.adminPassword=pw;
+  await writeState(ns);buildSel();refreshAdm();showToast('💾 SAVED!');
+}
+async function adminForceStart(){
+  const joined=Object.keys(S.lobby).length;if(joined===0){showToast('No groups in lobby yet!');return;}
+  if(!confirm(`Force start with ${joined}/${S.totalGroups} groups?`))return;
+  await writeState({...S,biddingOpen:true});
+  showToast('⚡ BIDDING STARTED!');refreshAdm();
+  if(cG&&!countdownRunning){countdownRunning=true;launchCountdown();}
+}
+function refreshAdm(){
+  const joined=Object.keys(S.lobby).length;
+  const las=document.getElementById('lobby-adm-status');
+  if(las)las.textContent=`${joined}/${S.totalGroups} in lobby · ${S.biddingOpen?'BIDDING OPEN ⚡':'waiting…'}`;
+  document.getElementById('adm-sid').textContent=SESSION_ID||'LOCAL';
+  const tb=document.getElementById('atbody');tb.innerHTML='';
+  for(let i=1;i<=S.totalGroups;i++){
+    const sub=S.submissions[i];const inLobby=!!S.lobby[i];const p=(x)=>sub?MATS.find(m=>m.id===sub.picks[x]):null;
+    const c=GCOLS[(i-1)%GCOLS.length];const ct=GTXT[(i-1)%GTXT.length];
+    const fmt=(m)=>m?`<span style="font-family:'Press Start 2P',monospace;font-size:6px;background:var(--pp-green);color:#fff;padding:2px 4px;border-radius:2px;margin-right:4px">#${String(m.id).padStart(2,'0')}</span>${m.name}`:'—';
+    tb.innerHTML+=`<tr><td><span style="font-family:'Press Start 2P',monospace;font-size:8px;background:${c};color:${ct};padding:3px 6px;border-radius:3px;border:2px solid var(--dark)">${i}</span></td>
+      <td>${sub?.name||S.lobby[i]||'—'}</td><td style="font-size:10px;max-width:160px">${fmt(p(0))}</td>
+      <td style="font-size:10px;max-width:160px">${fmt(p(1))}</td>
+      <td><span class="chip ${sub?'s':inLobby?'l':'p'}">${sub?'DONE':inLobby?'LOBBY':'ABSENT'}</span></td></tr>`;
+  }
+  document.getElementById('brev').disabled=S.revealed;
+  if(S.revealed)document.getElementById('brev').textContent='✓ ALREADY REVEALED';
+}
+async function doReveal(){
+  if(!confirm('Reveal results now?'))return;
+  await writeState({...S,revealed:true});showPage('results');renderResults();showToast('🎉 RESULTS REVEALED!');
+}
+async function resetAll(){
+  if(!confirm('Reset ALL data?'))return;
+  const ns={...DEFAULT,totalGroups:S.totalGroups,adminPassword:S.adminPassword};
+  await writeState(ns);cG=null;mySel=[];countdownRunning=false;buildSel();showPage('register');showToast('🗑 RESET');
+}
+
+// ══════════════════════════════
+//  RESULTS
+// ══════════════════════════════
+function renderResults(){
+  const tm=getTM();let taken=0;
+  MATS.forEach(m=>{const cap=m.ds?2:1;taken+=Math.min((tm[m.id]||[]).length,cap);});
+  document.getElementById('rsub').textContent=`${Object.keys(S.submissions).length}/${S.totalGroups} submitted · ${22-taken} slots unclaimed`;
+  const g=document.getElementById('rgrid');g.innerHTML='';
+  for(let i=1;i<=S.totalGroups;i++){
+    const data=S.submissions[i];const nm=data?.name||S.lobby[i]||`Group ${i}`;
+    const c=GCOLS[(i-1)%GCOLS.length];const ct=GTXT[(i-1)%GTXT.length];
+    const mats=data?data.picks.map(id=>{const m=MATS.find(x=>x.id===id);
+      return `<div class="rmat"><span class="rmn">#${String(m.id).padStart(2,'0')}</span><span>${m.name}</span></div>`;}).join('')
+      :`<div class="nosub">NO SUBMISSION</div>`;
+    g.innerHTML+=`<div class="rcard"><div class="rtop" style="border-bottom:2px solid ${c}">
+      <div class="rnum" style="background:${c};color:${ct};border-color:${c}">${i}</div>
+      <div class="rinfo"><h3>${nm}</h3><p>${data?'2 MATERIALS ASSIGNED':'DID NOT SUBMIT'}</p></div></div>
+      <div class="rmats">${mats}</div></div>`;
+  }
+}
+
+// ══════════════════════════════
+//  UTILS
+// ══════════════════════════════
+function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(`page-${n}`).classList.add('active');}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+function copyId(){if(!SESSION_ID)return;navigator.clipboard.writeText(SESSION_ID).then(()=>showToast('📋 SESSION ID COPIED!'));}
+</script>
+</body>
+</html>
