@@ -425,10 +425,30 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 <div id="page-register" class="page">
   <div class="reg-inner">
     <div><div class="gtitle">🏗 PICK YOUR MATERIALS!</div><div class="gtitle-bar"></div></div>
-    <div class="rule-row">
-      <span class="rtag a">🏆 RANK YOUR 4 CHOICES</span>
-      <span class="rtag b">🔄 CONFLICTS RESOLVED BY DRAW</span>
-      <span class="rtag c">📦 GET EXACTLY 2 MATERIALS</span>
+    <div style="background:var(--cream2);border:var(--bw) solid var(--dark);border-radius:var(--r);
+      box-shadow:var(--sh2);padding:14px 16px;width:100%;line-height:1.8;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--orange);margin-bottom:10px;">
+        🎮 HOW TO PLAY
+      </div>
+      <p style="font-size:13px;font-weight:800;color:var(--dark);margin-bottom:8px;">
+        Rank <strong>4 materials</strong> in order of preference:
+      </p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;background:var(--rank1);color:#fff;padding:3px 7px;border-radius:3px;border:2px solid var(--dark);white-space:nowrap">1ST</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;background:var(--rank2);color:var(--dark);padding:3px 7px;border-radius:3px;border:2px solid var(--dark);white-space:nowrap">2ND</span>
+          <span style="font-size:12px;font-weight:800;color:var(--dark)">Your <strong>dream picks</strong> 🏆</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;background:var(--rank3);color:#fff;padding:3px 7px;border-radius:3px;border:2px solid var(--dark);white-space:nowrap">3RD</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;background:var(--rank4);color:var(--dark);padding:3px 7px;border-radius:3px;border:2px solid var(--dark);white-space:nowrap">4TH</span>
+          <span style="font-size:12px;font-weight:800;color:var(--dark)">Your <strong>safety net</strong> 🛡</span>
+        </div>
+      </div>
+      <p style="font-size:12px;font-weight:800;color:var(--dark2);line-height:1.7;">
+        The system allocates by rank order. You will receive <strong>exactly 2 materials</strong>.<br/>
+        If two or more groups want the same material, one winner is picked by <strong>lucky draw</strong> — so choose wisely! 🍀
+      </p>
     </div>
     <div class="card" style="width:100%">
       <div class="card-h" style="background:var(--orange2)">▶ REGISTER YOUR GROUP</div>
@@ -1198,30 +1218,40 @@ function demoAutoFill(){
 
 /* ══════════════════════════════════════════
    ALLOCATION ENGINE
-   - claimants <= slots: everyone wins, no draw
-   - claimants > slots:  random draw fills slots
-   - After round 4: remaining groups get random from pool
+   How it works:
+   - Round 1: every group's 1st choice is collected.
+     If claimants <= slots → all get it (no draw).
+     If claimants > slots  → random draw, winners get it, losers move on.
+   - Round 2-4: same, but only for groups still needing materials,
+     using their next ranked pick.
+   - A group can pick up both materials in round 1 if their 1st choice
+     has enough slots AND they still need a 2nd material — handled by
+     running multiple passes per round until no more assignments possible.
+   - Fallback: any group still needing 2 materials gets random from pool.
 ══════════════════════════════════════════ */
 function allocate(submissions, mats, totalGroups){
+  // slot tracker {matId: slotsRemaining}
   var slots={};
   for(var i=0;i<mats.length;i++) slots[mats[i].id]=mats[i].slots||1;
+
+  // assigned {gid: [matId, ...]}
   var assigned={};
   for(var g=1;g<=totalGroups;g++) assigned[g]=[];
 
   function needsMat(gid){ return assigned[gid].length<2; }
-  function allDone(){
-    for(var g=1;g<=totalGroups;g++) if(submissions[g]&&needsMat(g)) return false;
-    return true;
-  }
 
-  for(var round=0;round<4&&!allDone();round++){
+  // Process one round: each unresolved group submits their picks[round] pick
+  // Returns true if any assignment was made
+  function processRound(round){
+    var anyAssigned=false;
+    // Collect requests: {matId: [gids]}
     var requests={};
     for(var g=1;g<=totalGroups;g++){
       if(!submissions[g]||!needsMat(g)) continue;
       var pick=submissions[g].picks[round];
       if(pick===null||pick===undefined) continue;
       if(slots[pick]<=0) continue;
-      if(assigned[g].indexOf(pick)>-1) continue;
+      if(assigned[g].indexOf(pick)>-1) continue; // already have this mat
       if(!requests[pick]) requests[pick]=[];
       requests[pick].push(g);
     }
@@ -1231,13 +1261,14 @@ function allocate(submissions, mats, totalGroups){
       var claimants=requests[matId];
       var slotsAvail=slots[matId];
       if(claimants.length<=slotsAvail){
-        // All get it — no conflict
+        // Everyone gets it — no draw needed
         for(var ci=0;ci<claimants.length;ci++){
           assigned[claimants[ci]].push(matId);
           slots[matId]--;
+          anyAssigned=true;
         }
       } else {
-        // More want it than slots — random draw
+        // More claimants than slots — random draw
         for(var si=claimants.length-1;si>0;si--){
           var ri=Math.floor(Math.random()*(si+1));
           var tmp=claimants[si]; claimants[si]=claimants[ri]; claimants[ri]=tmp;
@@ -1246,17 +1277,32 @@ function allocate(submissions, mats, totalGroups){
         for(var wi=0;wi<winners.length;wi++){
           assigned[winners[wi]].push(matId);
           slots[matId]--;
+          anyAssigned=true;
         }
-        // losers fall through to next round
+        // losers will retry with their next-ranked pick in subsequent rounds
       }
     }
+    return anyAssigned;
   }
 
-  // Fallback: random from remaining pool
+  // Run rounds 1-4
+  // Key insight: after round 1 a group may have only 1 material.
+  // We run rounds 1-4 sequentially. Within each round we only look at
+  // that rank's pick. Groups that already have 2 are skipped.
+  for(var round=0;round<4;round++){
+    processRound(round);
+    // Check if all done
+    var allDone=true;
+    for(var g=1;g<=totalGroups;g++) if(submissions[g]&&needsMat(g)){ allDone=false; break; }
+    if(allDone) break;
+  }
+
+  // Fallback: random from remaining pool for any group still needing materials
   var pool=[];
   for(var i=0;i<mats.length;i++){
     for(var s=0;s<slots[mats[i].id];s++) pool.push(mats[i].id);
   }
+  // Shuffle pool
   for(var pi=pool.length-1;pi>0;pi--){
     var pri=Math.floor(Math.random()*(pi+1));
     var ptmp=pool[pi]; pool[pi]=pool[pri]; pool[pri]=ptmp;
@@ -1273,7 +1319,7 @@ function allocate(submissions, mats, totalGroups){
     }
   }
 
-  // Build result with rank info
+  // Build result with rank info for display
   var assignedWithRound={};
   for(var g=1;g<=totalGroups;g++){
     assignedWithRound[g]=[];
