@@ -533,16 +533,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:10p
       <div class="ach" style="background:var(--orange)">🔥 FIREBASE SETUP — CREATE SESSION</div>
       <div class="acb">
         <div class="fb-note">
-          <strong>3-minute setup (one time only):</strong><br/>
-          1. Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br/>
-          2. <strong>Add project</strong> → name it <code>materialbid</code> → disable Analytics → <strong>Create project</strong><br/>
-          3. Left menu → <strong>Build → Realtime Database → Create database</strong><br/>
-          4. Choose any location → select <strong>Test mode</strong> → Enable<br/>
-          5. Copy the database URL (looks like <code>https://xxx-rtdb.firebaseio.com</code>)<br/>
-          6. Paste it below and click Create Session
+          ✅ <strong>Firebase URL is pre-configured!</strong><br/>
+          Just click <strong>▶ CREATE SESSION</strong> below.<br/>
+          A Session ID will appear — share it with students and they can join instantly.<br/><br/>
+          <span style="color:var(--pp-grey);font-size:10px">Connected to: <code>materialbid-f5e38</code></span>
         </div>
-        <div class="fg">
-          <label>FIREBASE DATABASE URL</label>
+        <div class="fg" style="display:none">
+          <label>FIREBASE DATABASE URL (override)</label>
           <input type="text" id="fb-url" placeholder="https://your-app-default-rtdb.firebaseio.com"/>
         </div>
         <button class="btn-go" onclick="teacherSetup()">▶ CREATE SESSION</button>
@@ -705,7 +702,7 @@ var DEF = {totalGroups:11,adminPassword:'admin123',lobby:{},biddingOpen:false,su
 var S = JSON.parse(JSON.stringify(DEF));
 var cG = null;
 var mySel = [];
-var FB_URL = null;        // Firebase Realtime DB URL, e.g. https://xxx.firebaseio.com
+var FB_URL = 'https://materialbid-f5e38-default-rtdb.asia-southeast1.firebasedatabase.app';
 var SESSION_KEY = null;   // key under /sessions/
 var SESSION_ID = null;    // what we show/share = SESSION_KEY
 var isRemote = false;
@@ -835,10 +832,10 @@ function onStateChange(prev) {
    TEACHER SETUP
 ══════════════════════════════════════════════ */
 function teacherSetup() {
+  // Use hardcoded URL, or allow override via input field
   var url = document.getElementById('fb-url').value.trim();
-  if (!url) { showToast('⚠ PASTE YOUR FIREBASE URL'); return; }
-  // Normalise — strip trailing slash
-  FB_URL = url.replace(/\/$/, '');
+  if (url) FB_URL = url.replace(/\/$/, '');
+  if (!FB_URL) { showToast('⚠ NO FIREBASE URL CONFIGURED'); return; }
   setSS('busy', 'CREATING SESSION…');
 
   var fresh = JSON.parse(JSON.stringify(DEF));
@@ -869,23 +866,6 @@ function studentJoin() {
   var sid = document.getElementById('join-sid').value.trim();
   if (!sid) { showToast('⚠ PASTE A SESSION ID'); return; }
 
-  // Students need the Firebase URL too — we store it in the session data
-  // But we don't know it yet. Strategy: ask teacher to include URL in session ID,
-  // or embed it in the platform. Since this is a fixed deployment, teacher pastes
-  // FB_URL into admin once, and we save it to localStorage for reuse.
-  // For students: the Session ID IS the Firebase key. The FB URL must be configured.
-  var savedUrl = '';
-  try { savedUrl = localStorage.getItem('mbid_fb_url') || ''; } catch(e) {}
-
-  if (!savedUrl) {
-    // Prompt for URL if not saved
-    var entered = prompt('First time setup: paste your Firebase Database URL\n(e.g. https://your-app-default-rtdb.firebaseio.com)');
-    if (!entered) return;
-    savedUrl = entered.trim().replace(/\/$/, '');
-    try { localStorage.setItem('mbid_fb_url', savedUrl); } catch(e) {}
-  }
-
-  FB_URL = savedUrl;
   SESSION_KEY = sid;
   SESSION_ID  = sid;
   isRemote = true;
@@ -896,8 +876,7 @@ function studentJoin() {
       setSS('err', 'NOT FOUND');
       showToast('❌ SESSION NOT FOUND\nCheck the Session ID and try again.');
       FB_URL = SESSION_KEY = SESSION_ID = null; isRemote = false;
-      // Clear saved URL so they can re-enter
-      try { localStorage.removeItem('mbid_fb_url'); } catch(e) {}
+
       return;
     }
     S = mergeDefault(data);
@@ -1336,12 +1315,7 @@ function copyId() {
   } else { showToast('SESSION ID: ' + SESSION_ID); }
 }
 
-// Save Firebase URL to localStorage when teacher sets it up (for student convenience)
-// Students only need to enter it once per device — it's stored locally
-document.getElementById('fb-url').addEventListener('change', function() {
-  var v = this.value.trim();
-  if (v) { try { localStorage.setItem('mbid_fb_url', v); } catch(e) {} }
-});
+// Firebase URL is hardcoded — no additional setup needed for students
 </script>
 </body>
 </html>
