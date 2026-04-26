@@ -673,7 +673,7 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
         </div>
         <div class="acc-body">
           <p style="font-size:10px;font-weight:800;color:var(--dark2);margin-bottom:8px;line-height:1.5">
-            Edit before session starts. Slots = how many groups can get that material (default 1).
+            Edit slots any time before allocation runs. Slots = how many groups can get that material (default 1).
           </p>
           <div style="display:flex;gap:6px;margin-bottom:6px">
             <span style="font-family:'Press Start 2P',monospace;font-size:5px;color:var(--dark2);flex:1">MATERIAL NAME</span>
@@ -1724,7 +1724,8 @@ function addMatRow(){
   if(ed) ed.scrollTop=ed.scrollHeight;
 }
 function saveMats(){
-  if(S.biddingOpen){ showToast('⚠ Cannot edit list once bidding is open'); return; }
+  // Allow editing slots even after bidding opens — only block after allocation has run
+  if(S.results){ showToast('⚠ Cannot edit materials after allocation has run'); return; }
   // ALWAYS read directly from DOM inputs before saving
   // This prevents the onchange-not-fired bug when user clicks Save immediately
   var rows = document.querySelectorAll('#mat-editor .mat-row');
