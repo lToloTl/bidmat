@@ -877,6 +877,15 @@ function merge(d){
     }
     o.lobby=cleanLobby;
   }
+  // Strip null/false submission entries (same ghost issue)
+  if(o.submissions){
+    var cleanSubs={};
+    var sk=Object.keys(o.submissions);
+    for(var si=0;si<sk.length;si++){
+      if(o.submissions[sk[si]]&&o.submissions[sk[si]].name) cleanSubs[sk[si]]=o.submissions[sk[si]];
+    }
+    o.submissions=cleanSubs;
+  }
   return o;
 }
 function onStateChange(prev){
@@ -1310,7 +1319,7 @@ function allocate(submissions, mats, totalGroups){
     // Collect requests: {matId: [gids]}
     var requests={};
     for(var g=1;g<=totalGroups;g++){
-      if(!submissions[g]||!needsMat(g)) continue;
+      if(!submissions[g]||!submissions[g].name||!needsMat(g)) continue;
       var pick=parseInt(submissions[g].picks[round]);
       if(pick===null||pick===undefined||isNaN(pick)) continue;
       if(slots[pick]<=0) continue;
@@ -1529,6 +1538,7 @@ function runAllocation(){
   for(var gi=0;gi<gkeys.length;gi++){
     var gid=gkeys[gi];
     var sub=S.submissions[gid];
+    if(!sub||!sub.name) continue;
     summary+='  '+sub.name+': ';
     var pickNames=[];
     for(var pi=0;pi<4;pi++){
