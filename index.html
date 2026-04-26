@@ -1118,7 +1118,7 @@ function checkLobbyFull(){
 /* ══════════════════════════════════════════
    BID — 4 ranked picks
 ══════════════════════════════════════════ */
-function getMat(id){ for(var i=0;i<S.mats.length;i++) if(S.mats[i].id===id) return S.mats[i]; return null; }
+function getMat(id){ if(id===null||id===undefined) return null; var numId=parseInt(id); for(var i=0;i<S.mats.length;i++) if(S.mats[i].id===numId||S.mats[i].id===id) return S.mats[i]; return null; }
 
 function enterBid(){
   if(!cG){ showPage('register'); return; }
@@ -1311,10 +1311,10 @@ function allocate(submissions, mats, totalGroups){
     var requests={};
     for(var g=1;g<=totalGroups;g++){
       if(!submissions[g]||!needsMat(g)) continue;
-      var pick=submissions[g].picks[round];
-      if(pick===null||pick===undefined) continue;
+      var pick=parseInt(submissions[g].picks[round]);
+      if(pick===null||pick===undefined||isNaN(pick)) continue;
       if(slots[pick]<=0) continue;
-      if(assigned[g].indexOf(pick)>-1) continue; // already have this mat
+      var ipick=parseInt(pick); if(assigned[g].indexOf(ipick)>-1) continue; pick=ipick; // already have this mat
       if(!requests[pick]) requests[pick]=[];
       requests[pick].push(g);
     }
@@ -1535,7 +1535,7 @@ function runAllocation(){
       var mid=sub.picks[pi];
       if(mid===null||mid===undefined){ pickNames.push('—'); continue; }
       var mat=getMat(mid);
-      pickNames.push((pi+1)+'.'+(mat?mat.name.substring(0,20):'#'+mid));
+      pickNames.push((pi+1)+'.'+(mat?mat.name.substring(0,18):'ID:'+mid+'(missing)'));
     }
     summary+=pickNames.join(' | ')+'\n';
   }
