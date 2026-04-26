@@ -1521,45 +1521,65 @@ function stopSessionUI(){
 }
 
 function runAllocation(){
-  var subs=Object.keys(S.submissions).length;
+  var subs=Object.keys(S.submissions).filter(function(k){ return S.submissions[k]&&S.submissions[k].name; }).length;
   if(subs===0){ showToast('No submissions yet!'); return; }
-  // Show full confirmation: slots + each group's actual ranked picks
-  var multiSlot=S.mats.filter(function(m){ return m.slots>1; });
-  var summary=subs+' group(s) submitted.\n\n';
-  if(multiSlot.length>0){
-    summary+='MULTI-SLOT MATERIALS:\n';
-    for(var i=0;i<multiSlot.length;i++){
-      summary+='  x'+multiSlot[i].slots+': '+multiSlot[i].name.substring(0,40)+'\n';
+  // Always read fresh mats from Firebase before allocating — guarantees latest slot values
+  function doAlloc(matsToUse){
+    var multiSlot=matsToUse.filter(function(m){ return m.slots>1; });
+    var summary=subs+' group(s) submitted.\n\n';
+    if(multiSlot.length>0){
+      summary+='MULTI-SLOT MATERIALS:\n';
+      for(var i=0;i<multiSlot.length;i++){
+        summary+='  x'+multiSlot[i].slots+': '+multiSlot[i].name.substring(0,40)+'\n';
+      }
+      summary+='\n';
     }
-    summary+='\n';
-  }
-  summary+='GROUP PICKS:\n';
-  var gkeys=Object.keys(S.submissions);
-  for(var gi=0;gi<gkeys.length;gi++){
-    var gid=gkeys[gi];
-    var sub=S.submissions[gid];
-    if(!sub||!sub.name) continue;
-    summary+='  '+sub.name+': ';
-    var pickNames=[];
-    for(var pi=0;pi<4;pi++){
-      var mid=sub.picks[pi];
-      if(mid===null||mid===undefined){ pickNames.push('—'); continue; }
-      var mat=getMat(mid);
-      pickNames.push((pi+1)+'.'+(mat?mat.name.substring(0,18):'ID:'+mid+'(missing)'));
+    summary+='GROUP PICKS:\n';
+    var gkeys=Object.keys(S.submissions);
+    for(var gi=0;gi<gkeys.length;gi++){
+      var gid=gkeys[gi];
+      var sub=S.submissions[gid];
+      if(!sub||!sub.name) continue;
+      summary+='  '+sub.name+': ';
+      var pickNames=[];
+      for(var pi=0;pi<4;pi++){
+        var mid=parseInt(sub.picks[pi]);
+        if(!mid||isNaN(mid)){ pickNames.push('—'); continue; }
+        var mat=null;
+        for(var mi2=0;mi2<matsToUse.length;mi2++) if(matsToUse[mi2].id===mid){ mat=matsToUse[mi2]; break; }
+        pickNames.push((pi+1)+'.'+(mat?mat.name.substring(0,18):'ID:'+mid));
+      }
+      summary+=pickNames.join(' | ')+'\n';
     }
-    summary+=pickNames.join(' | ')+'\n';
+    summary+='\nProceed?';
+    if(!confirm(summary)) return;
+    var result=allocate(S.submissions, matsToUse, S.totalGroups);
+    S.mats=matsToUse; // update local state with confirmed fresh mats
+    var ns=JSON.parse(JSON.stringify(S));
+    ns.results=result.assignments;
+    writeState(ns,function(ok){
+      if(!ok){ showToast('\u274c FAILED'); return; }
+      showToast('\u2705 ALLOCATION DONE! Click Reveal when ready.');
+      document.getElementById('brev').disabled=false;
+      refreshAdm();
+    });
   }
-  summary+='\nProceed?';
-  if(!confirm(summary)) return;
-  var result=allocate(S.submissions, S.mats, S.totalGroups);
-  var ns=JSON.parse(JSON.stringify(S));
-  ns.results=result.assignments;
-  writeState(ns,function(ok){
-    if(!ok){ showToast('\u274c FAILED'); return; }
-    showToast('\u2705 ALLOCATION DONE! Click Reveal when ready.');
-    document.getElementById('brev').disabled=false;
-    refreshAdm();
-  });
+  if(isRemote && SESSION_KEY){
+    // Read fresh mats from Firebase to avoid stale slot values
+    fbRead('/sessions/'+SESSION_KEY+'/mats', function(err, freshMats){
+      if(err||!freshMats||!freshMats.length){
+        showToast('Using local mat list (could not verify with server)');
+        doAlloc(S.mats);
+      } else {
+        // Ensure IDs are integers
+        for(var i=0;i<freshMats.length;i++) freshMats[i].id=parseInt(freshMats[i].id);
+        S.mats=freshMats; // sync local state
+        doAlloc(freshMats);
+      }
+    });
+  } else {
+    doAlloc(S.mats);
+  }
 }
 function doReveal(){
   if(!S.results){ showToast('Run allocation first!'); return; }
@@ -1725,8 +1745,23 @@ function saveMats(){
     }
   }
   writeState(JSON.parse(JSON.stringify(S)),function(ok){
-    if(ok){ showToast('💾 MATERIAL LIST SAVED!'); renderMatEditor(); }
-    else showToast('❌ SAVE FAILED');
+    if(ok){
+      showToast('💾 MATERIAL LIST SAVED!');
+      renderMatEditor();
+      // Verify by re-reading from Firebase
+      if(isRemote && SESSION_KEY){
+        fbRead('/sessions/'+SESSION_KEY+'/mats', function(err2, savedMats){
+          if(err2||!savedMats) return;
+          console.log('Firebase confirmed mats slots:', JSON.stringify(savedMats.map(function(m){return {id:m.id,slots:m.slots};})));
+          var allMatch=true;
+          for(var vi=0;vi<S.mats.length;vi++){
+            var fm=savedMats[vi];
+            if(!fm||fm.slots!==S.mats[vi].slots){ allMatch=false; break; }
+          }
+          if(!allMatch) showToast('⚠️ SLOT VALUES MAY NOT HAVE SAVED CORRECTLY\nPlease save again before running allocation');
+        });
+      }
+    } else showToast('❌ SAVE FAILED — PLEASE RETRY');
   });
 }
 
