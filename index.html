@@ -850,10 +850,17 @@ function startPoll(){
   pollTimer = setInterval(function(){
     fbRead('/sessions/'+SESSION_KEY, function(err,remote){
       if(err||!remote) return;
-      if(remote.v===lastV) return;
+      var remoteV = remote.v||0;
       var prev = JSON.parse(JSON.stringify(S));
-      lastV = remote.v;
       S = merge(remote);
+      // Always re-render lobby/grows even if v unchanged (catches atomic field writes)
+      var cur = document.querySelector('.page.active');
+      if(cur){
+        if(cur.id==='page-lobby')   { renderLobbyUI(); checkStartBtn(); }
+        if(cur.id==='page-admin')   { refreshAdm(); }
+      }
+      if(remoteV===lastV) return; // skip heavy state changes if v unchanged
+      lastV = remoteV;
       onStateChange(prev);
     });
   }, 3000);
@@ -861,6 +868,15 @@ function startPoll(){
 function merge(d){
   var o = JSON.parse(JSON.stringify(DEF_STATE));
   var k = Object.keys(d); for(var i=0;i<k.length;i++) o[k[i]]=d[k[i]];
+  // Strip null/false lobby entries (ghost groups from interrupted sessions)
+  if(o.lobby){
+    var cleanLobby={};
+    var lk=Object.keys(o.lobby);
+    for(var li=0;li<lk.length;li++){
+      if(o.lobby[lk[li]]) cleanLobby[lk[li]]=o.lobby[lk[li]];
+    }
+    o.lobby=cleanLobby;
+  }
   return o;
 }
 function onStateChange(prev){
@@ -1046,8 +1062,14 @@ function doRegister(){
   if(isRemote && SESSION_KEY){
     fbWrite('/sessions/'+SESSION_KEY+'/lobby/'+gid, nm, function(err){
       if(err){ showToast('❌ FAILED — RETRY'); cG=null; return; }
-      // Also bump v so other clients poll the change
       S.lobby[gid]=nm;
+      // Remove any null/ghost entries from local state
+      var cleanLobby={};
+      var lkeys=Object.keys(S.lobby);
+      for(var li=0;li<lkeys.length;li++){
+        if(S.lobby[lkeys[li]]) cleanLobby[lkeys[li]]=S.lobby[lkeys[li]];
+      }
+      S.lobby=cleanLobby;
       fbWrite('/sessions/'+SESSION_KEY+'/v', (S.v||0)+1, function(){
         S.v=(S.v||0)+1; lastV=S.v;
         saveSess(); renderLobbyUI(); showPage('lobby');
@@ -1069,7 +1091,7 @@ function renderLobbyUI(){
   var idx=(cG-1)%GCOLS.length;
   mc.style.background=GCOLS[idx]; mc.style.color=GTXT[idx]; mc.textContent=cG;
   document.getElementById('lobby-mn').textContent=S.lobby[cG]||'Group '+cG;
-  var joined=Object.keys(S.lobby).length;
+  var joined=Object.keys(S.lobby).filter(function(k){return !!S.lobby[k];}).length;
   var pct=Math.round(joined/S.totalGroups*100);
   document.getElementById('prog-fill').style.width=pct+'%';
   document.getElementById('prog-txt').textContent=joined+' / '+S.totalGroups;
@@ -1434,7 +1456,7 @@ function updateTimerDisp(){
    SESSION CONTROL
 ══════════════════════════════════════════ */
 function startSession(){
-  var joined=Object.keys(S.lobby).length;
+  var joined=Object.keys(S.lobby).filter(function(k){return !!S.lobby[k];}).length;
   if(joined<S.totalGroups){ showToast('Not all groups joined yet!'); return; }
   writeState(Object.assign({},S,{biddingOpen:true}),function(ok){
     if(!ok) return;
@@ -1443,12 +1465,12 @@ function startSession(){
 }
 function checkStartBtn(){
   var btn=document.getElementById('btn-start'); if(!btn) return;
-  var joined=Object.keys(S.lobby).length;
+  var joined=Object.keys(S.lobby).filter(function(k){return !!S.lobby[k];}).length;
   btn.disabled=joined<S.totalGroups||S.biddingOpen;
   btn.textContent=S.biddingOpen?'✓ STARTED':'▶ START SESSION ('+joined+'/'+S.totalGroups+')';
 }
 function adminForceStart(){
-  var joined=Object.keys(S.lobby).length;
+  var joined=Object.keys(S.lobby).filter(function(k){return !!S.lobby[k];}).length;
   if(joined===0){ showToast('No groups in lobby!'); return; }
   if(!confirm('Force start with '+joined+'/'+S.totalGroups+' groups?')) return;
   writeState(Object.assign({},S,{biddingOpen:true}),function(ok){
@@ -1492,19 +1514,32 @@ function stopSessionUI(){
 function runAllocation(){
   var subs=Object.keys(S.submissions).length;
   if(subs===0){ showToast('No submissions yet!'); return; }
-  // Show confirmation with full slot summary so admin can verify
+  // Show full confirmation: slots + each group's actual ranked picks
   var multiSlot=S.mats.filter(function(m){ return m.slots>1; });
   var summary=subs+' group(s) submitted.\n\n';
   if(multiSlot.length>0){
-    summary+='MULTI-SLOT MATERIALS (shared, no draw):\n';
+    summary+='MULTI-SLOT MATERIALS:\n';
     for(var i=0;i<multiSlot.length;i++){
-      summary+='  x'+multiSlot[i].slots+' slots: '+multiSlot[i].name.substring(0,45)+'\n';
+      summary+='  x'+multiSlot[i].slots+': '+multiSlot[i].name.substring(0,40)+'\n';
     }
     summary+='\n';
-  } else {
-    summary+='All materials: 1 slot each.\n\n';
   }
-  summary+='Proceed with allocation?';
+  summary+='GROUP PICKS:\n';
+  var gkeys=Object.keys(S.submissions);
+  for(var gi=0;gi<gkeys.length;gi++){
+    var gid=gkeys[gi];
+    var sub=S.submissions[gid];
+    summary+='  '+sub.name+': ';
+    var pickNames=[];
+    for(var pi=0;pi<4;pi++){
+      var mid=sub.picks[pi];
+      if(mid===null||mid===undefined){ pickNames.push('—'); continue; }
+      var mat=getMat(mid);
+      pickNames.push((pi+1)+'.'+(mat?mat.name.substring(0,20):'#'+mid));
+    }
+    summary+=pickNames.join(' | ')+'\n';
+  }
+  summary+='\nProceed?';
   if(!confirm(summary)) return;
   var result=allocate(S.submissions, S.mats, S.totalGroups);
   var ns=JSON.parse(JSON.stringify(S));
@@ -1567,7 +1602,7 @@ function saveSett(){
   writeState(ns,function(){ buildSel(); refreshAdm(); showToast('💾 SAVED!'); });
 }
 function refreshAdm(){
-  var joined=Object.keys(S.lobby).length;
+  var joined=Object.keys(S.lobby).filter(function(k){return !!S.lobby[k];}).length;
   var el=document.getElementById('lobby-status');
   if(el) el.textContent=joined+'/'+S.totalGroups+' in lobby · '+(S.biddingOpen?'BIDDING OPEN ⚡':'waiting…');
   var pin=document.getElementById('adm-pin');
