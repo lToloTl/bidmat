@@ -445,9 +445,10 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
           <span style="font-size:12px;font-weight:800;color:var(--dark)">Your <strong>safety net</strong> 🛡</span>
         </div>
       </div>
-      <p style="font-size:12px;font-weight:800;color:var(--dark2);line-height:1.7;">
-        The system allocates by rank order. You will receive <strong>exactly 2 materials</strong>.<br/>
-        If two or more groups want the same material, one winner is picked by <strong>lucky draw</strong> — so choose wisely! 🍀
+      <p style="font-size:12px;font-weight:800;color:var(--dark2);line-height:1.8;">
+        Rank up to <strong>4 materials</strong>. Your top 2 are your dream picks — choices 3 &amp; 4 are your safety net.<br/><br/>
+        We'll try to get you your top choices first. If there's a clash with another group, it goes to a <strong>lucky draw</strong> — so choose wisely! 🍀<br/><br/>
+        You will receive <strong>exactly 2 materials</strong>.
       </p>
     </div>
     <div class="card" style="width:100%">
@@ -570,14 +571,14 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
         </div>
         <div class="acc-body">
           <p style="font-size:11px;font-weight:800;color:var(--dark2);margin-bottom:10px;line-height:1.6">
-            Set a 4-digit PIN. Students type this to join.
+            Set a 4-digit PIN and the number of groups. Students type the PIN to join.
           </p>
           <div class="fg">
-            <label>SESSION PIN (4 digits)</label>
-            <input type="text" id="pin-input" maxlength="4" placeholder="e.g. 2847"
-              style="font-family:'Press Start 2P',monospace;font-size:20px;letter-spacing:6px;text-align:center"
-              oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
-          </div>
+              <label>SESSION PIN (4 digits)</label>
+              <input type="text" id="pin-input" maxlength="4" placeholder="e.g. 2847"
+                style="font-family:'Press Start 2P',monospace;font-size:20px;letter-spacing:6px;text-align:center"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+            </div>
           <button class="btn green" onclick="teacherSetup()">▶ CREATE SESSION</button>
         </div>
       </div>
@@ -923,17 +924,36 @@ function teacherSetup(){
   var pin = document.getElementById('pin-input').value.trim();
   if(pin.length!==4){ showToast('⚠ ENTER A 4-DIGIT PIN'); return; }
   showToast('CREATING SESSION…');
+  // If a previous session/pin exists, clean it up first to avoid ghost groups
+  var cleanupDone = function(){ doCreate(pin); };
+  if(SESSION_KEY){ fbDelete('/sessions/'+SESSION_KEY, function(){}); }
+  if(SESSION_PIN){ fbDelete('/pins/'+SESSION_PIN, cleanupDone); }
+  else { cleanupDone(); }
+}
+function doCreate(pin){
   var fresh = JSON.parse(JSON.stringify(DEF_STATE));
-  fresh.v=1;
+  // Explicitly empty lobby and submissions to kill any ghost data
+  fresh.lobby = {};
+  fresh.submissions = {};
+  fresh.results = null;
+  fresh.allocLog = [];
+  fresh.revealed = false;
+  fresh.stopped = false;
+  fresh.biddingOpen = false;
+  fresh.v = 1;
   fbCreate(fresh, function(err,key){
     if(err||!key){ showToast('❌ CREATE FAILED: '+(err?String(err).substring(0,60):'no key returned')); return; }
-    registerPin(pin, key, function(ok){
-      if(!ok){ showToast('❌ COULD NOT REGISTER PIN'); return; }
-      SESSION_KEY=key; SESSION_PIN=pin; isRemote=true;
-      S=fresh; lastV=1;
-      document.getElementById('adm-pin').textContent=pin;
-      startPoll(); startSessionTimer(); refreshAdm();
-      showToast('✅ SESSION CREATED!\nPIN: '+pin);
+    // Delete old PIN mapping then register new one
+    fbDelete('/pins/'+pin, function(){
+      registerPin(pin, key, function(ok){
+        if(!ok){ showToast('❌ COULD NOT REGISTER PIN'); return; }
+        SESSION_KEY=key; SESSION_PIN=pin; isRemote=true;
+        S=fresh; lastV=1;
+        var admPin=document.getElementById('adm-pin');
+        if(admPin) admPin.textContent=pin;
+        startPoll(); startSessionTimer(); refreshAdm();
+        showToast('✅ SESSION CREATED! PIN: '+pin);
+      });
     });
   });
 }
@@ -1022,12 +1042,22 @@ function doRegister(){
   if(S.lobby[gid]&&gid!==cG){ showToast('Group already in lobby!'); return; }
   var nm=document.getElementById('gname').value.trim()||'Group '+gid;
   cG=gid;
-  var nl=JSON.parse(JSON.stringify(S.lobby)); nl[gid]=nm;
-  var ns=JSON.parse(JSON.stringify(S)); ns.lobby=nl;
-  writeState(ns, function(ok){
-    if(!ok){ showToast('❌ FAILED'); cG=null; return; }
+  // Write ONLY this group's lobby slot — avoids race condition with concurrent joins
+  if(isRemote && SESSION_KEY){
+    fbWrite('/sessions/'+SESSION_KEY+'/lobby/'+gid, nm, function(err){
+      if(err){ showToast('❌ FAILED — RETRY'); cG=null; return; }
+      // Also bump v so other clients poll the change
+      S.lobby[gid]=nm;
+      fbWrite('/sessions/'+SESSION_KEY+'/v', (S.v||0)+1, function(){
+        S.v=(S.v||0)+1; lastV=S.v;
+        saveSess(); renderLobbyUI(); showPage('lobby');
+      });
+    });
+  } else {
+    // Local / demo
+    S.lobby[gid]=nm;
     saveSess(); renderLobbyUI(); showPage('lobby'); checkLobbyFull();
-  });
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -1085,7 +1115,7 @@ function renderGrid(){
     for(var r=0;r<4;r++) if(myPicks[r]===m.id){ rankIdx=r; break; }
     var cls='mc'+(rankIdx>=0?' ranked r'+(rankIdx+1)+'-sel':'');
     var badge=rankIdx>=0?'<div class="rank-badge '+RANK_CLASSES[rankIdx]+'">'+RANK_LABELS[rankIdx]+'</div>':'';
-    var slotsBadge=m.slots>1?'<div class="slots-display">×'+m.slots+'</div>':'';
+    var slotsBadge=m.slots>1?'<div class="slots-display">×'+m.slots+' SLOTS</div>':'';
     html+='<div class="'+cls+'" onclick="toggleRank('+m.id+')" id="mc'+m.id+'">'+
       badge+slotsBadge+
       '<div class="mnum">#'+(m.id<10?'0':'')+m.id+'</div>'+
@@ -1173,18 +1203,29 @@ function closeConf(){ document.getElementById('confm').classList.remove('show');
 function doSub(){
   closeConf();
   var nm=S.lobby[cG]||'Group '+cG;
-  var ns=JSON.parse(JSON.stringify(S));
-  ns.submissions[cG]={name:nm, picks:myPicks.slice()};
-  writeState(ns, function(ok){
-    if(!ok){ showToast('❌ SAVE FAILED — RETRY'); return; }
+  var subData={name:nm, picks:myPicks.slice()};
+  // Write ONLY this group's submission — avoids overwriting concurrent submissions
+  if(isRemote && SESSION_KEY){
+    fbWrite('/sessions/'+SESSION_KEY+'/submissions/'+cG, subData, function(err){
+      if(err){ showToast('❌ SAVE FAILED — RETRY'); return; }
+      S.submissions[cG]=subData;
+      // Bump v so others detect the change
+      fbWrite('/sessions/'+SESSION_KEY+'/v', (S.v||0)+1, function(){
+        S.v=(S.v||0)+1; lastV=S.v;
+        showToast('🎉 PICKS SUBMITTED!');
+        showPage('waiting'); renderWait();
+      });
+    });
+  } else {
+    // Local / demo
+    S.submissions[cG]=subData;
     showToast('🎉 PICKS SUBMITTED!');
     if(isDemo){
-      // Auto-fill remaining groups then run allocation
       setTimeout(function(){ demoAutoFill(); }, 500);
     } else {
       showPage('waiting'); renderWait();
     }
-  });
+  }
 }
 
 function renderWait(){
@@ -1451,13 +1492,26 @@ function stopSessionUI(){
 function runAllocation(){
   var subs=Object.keys(S.submissions).length;
   if(subs===0){ showToast('No submissions yet!'); return; }
-  if(!confirm('Run allocation for '+subs+' submitted groups?')) return;
+  // Show confirmation with full slot summary so admin can verify
+  var multiSlot=S.mats.filter(function(m){ return m.slots>1; });
+  var summary=subs+' group(s) submitted.\n\n';
+  if(multiSlot.length>0){
+    summary+='MULTI-SLOT MATERIALS (shared, no draw):\n';
+    for(var i=0;i<multiSlot.length;i++){
+      summary+='  x'+multiSlot[i].slots+' slots: '+multiSlot[i].name.substring(0,45)+'\n';
+    }
+    summary+='\n';
+  } else {
+    summary+='All materials: 1 slot each.\n\n';
+  }
+  summary+='Proceed with allocation?';
+  if(!confirm(summary)) return;
   var result=allocate(S.submissions, S.mats, S.totalGroups);
   var ns=JSON.parse(JSON.stringify(S));
-  ns.results=result.assignments; 
+  ns.results=result.assignments;
   writeState(ns,function(ok){
-    if(!ok){ showToast('❌ FAILED'); return; }
-    showToast('✅ ALLOCATION DONE!\nClick Reveal when ready.');
+    if(!ok){ showToast('\u274c FAILED'); return; }
+    showToast('\u2705 ALLOCATION DONE! Click Reveal when ready.');
     document.getElementById('brev').disabled=false;
     refreshAdm();
   });
@@ -1606,8 +1660,27 @@ function addMatRow(){
 }
 function saveMats(){
   if(S.biddingOpen){ showToast('⚠ Cannot edit list once bidding is open'); return; }
+  // ALWAYS read directly from DOM inputs before saving
+  // This prevents the onchange-not-fired bug when user clicks Save immediately
+  var rows = document.querySelectorAll('#mat-editor .mat-row');
+  for(var ri=0;ri<rows.length;ri++){
+    var row = rows[ri];
+    var nameInput = row.querySelector('input[type="text"]');
+    var slotsInput = row.querySelector('input[type="number"]');
+    if(!nameInput||!slotsInput) continue;
+    var id = parseInt(row.id.replace('mr',''));
+    var newName = nameInput.value.trim();
+    var newSlots = Math.max(1, parseInt(slotsInput.value)||1);
+    for(var mi=0;mi<S.mats.length;mi++){
+      if(S.mats[mi].id===id){
+        S.mats[mi].name = newName;
+        S.mats[mi].slots = newSlots;
+        break;
+      }
+    }
+  }
   writeState(JSON.parse(JSON.stringify(S)),function(ok){
-    if(ok) showToast('💾 MATERIAL LIST SAVED!');
+    if(ok){ showToast('💾 MATERIAL LIST SAVED!'); renderMatEditor(); }
     else showToast('❌ SAVE FAILED');
   });
 }
